@@ -1,0 +1,23 @@
+// Headless entry point: the phone data and pure helper functions, with no React
+// or React Native imports. Use this to parse/format/validate phone numbers, or
+// to build a custom UI, without depending on the component layer.
+
+export { COUNTRY_CODES, type CountryCode, isCountryCode } from "./data/countries";
+export { COUNTRY_PHONE_DATA, type CountryPhoneConfig } from "./data/phone-data";
+export { countryCodeToEmoji, type FlagRenderProps, type RenderFlag } from "./utils/flag-emoji";
+export { buildCountryOptions, type CountryOption, getRegionLabel } from "./utils/options";
+export {
+  applyPhoneMask,
+  countMaskDigitSlots,
+  countRequiredMaskDigits,
+  getCountryFromLocale,
+  getCountryPhoneCatalog,
+  getCountryPhoneConfig,
+  getNationalMask,
+  nationalFromE164,
+  normalizeCallingCode,
+  normalizeNationalDigits,
+  parseCountryFromE164,
+  toE164,
+  validateExtractedPhone,
+} from "./utils/phone";
