@@ -28,7 +28,6 @@ export const COLORS = {
   placeholder: "#94a3b8",
   label: "#374151",
   error: "#ef4444",
-  required: "#ef4444",
   primary: "#4f46e5",
   selectedTint: "#eef2ff",
   borderSubtle: "#e2e8f0",
@@ -85,6 +84,11 @@ export const defaultStyles = StyleSheet.create({
   callingCodeInput: {
     color: COLORS.text,
     paddingVertical: 0,
+  },
+  // Dims input text when the field is disabled, pairing with fieldDisabled's
+  // muted background. Composed onto both inputs only when `editable` is false.
+  inputDisabled: {
+    color: COLORS.textDisabled,
   },
   // Off-screen text probe (see PhoneInput) that measures the calling code's real
   // rendered width. Pulled out of flow and given auto width so it reports the

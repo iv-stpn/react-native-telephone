@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { CountryCode } from "../data/countries";
+import { normalizeForSearch } from "../utils/options";
 import { defaultStyles, noOutline } from "./styles";
 import type { RenderCountryPickerProps } from "./types";
 
@@ -20,7 +21,7 @@ export function CountryPicker(props: RenderCountryPickerProps) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = normalizeForSearch(query.trim());
     if (!q) return options;
     return options.filter((option) => option.searchableLabel.includes(q));
   }, [options, query]);
@@ -55,6 +56,7 @@ export function CountryPicker(props: RenderCountryPickerProps) {
 
           <TextInput
             testID="rnt-country-search"
+            accessibilityLabel={searchPlaceholder}
             style={[defaultStyles.search, noOutline, styles?.search]}
             placeholder={searchPlaceholder}
             placeholderTextColor={defaultStyles.hint.color}
@@ -78,6 +80,8 @@ export function CountryPicker(props: RenderCountryPickerProps) {
                     testID={`rnt-country-option-${code}`}
                     role="option"
                     aria-selected={isSelected}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => pick(code)}
                     style={[defaultStyles.option, isSelected && defaultStyles.optionSelected, styles?.option]}
                   >

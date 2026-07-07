@@ -396,15 +396,16 @@ describe("PhoneInput", () => {
     expect(screen.getByTestId("phone-national")).toHaveAttribute("readonly");
   });
 
-  it("restricts and alpha-sorts the picker by localized name (allowedCountries)", () => {
+  it("restricts the picker to allowedCountries and preserves their order", () => {
     render(<Harness allowedCountries={["DE", "FR", "US"]} />);
     fireEvent.click(screen.getByLabelText("Choose country"));
     const options = screen.getAllByRole("option");
-    // The caller's order governs the catalog; the picker sorts by localized
-    // name (en-US): France, Germany, United States.
+    // allowedCountries is authoritative order — the picker keeps it as given
+    // (so a consumer can float likely countries to the top) rather than
+    // alphabetizing.
     expect(options.map((o) => o.getAttribute("data-testid"))).toEqual([
-      "rnt-country-option-FR",
       "rnt-country-option-DE",
+      "rnt-country-option-FR",
       "rnt-country-option-US",
     ]);
   });

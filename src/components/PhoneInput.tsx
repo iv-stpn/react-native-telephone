@@ -572,13 +572,21 @@ export function PhoneInput({
         keyboardType="phone-pad"
         autoCapitalize="none"
         autoCorrect={false}
+        autoComplete="tel-country-code"
         // Generous cap so a full number pasted into the code field reaches the
         // change handler (which routes it to the national field) instead of being
         // truncated into an unroutable stub. Normal code entry stays 1–3 digits.
         maxLength={24}
         placeholder="+"
         placeholderTextColor={COLORS.placeholder}
-        style={[defaultStyles.callingCodeInput, noOutline, textSizeStyle, { width: callingCodeWidth }, styles?.callingCodeInput]}
+        style={[
+          defaultStyles.callingCodeInput,
+          noOutline,
+          textSizeStyle,
+          { width: callingCodeWidth },
+          !editable && defaultStyles.inputDisabled,
+          styles?.callingCodeInput,
+        ]}
         onFocus={() => {
           // A complete code sends focus onward to the national field — unless
           // a select-all is deliberately landing here to select the code.
@@ -623,9 +631,20 @@ export function PhoneInput({
         keyboardType="phone-pad"
         autoCapitalize="none"
         autoCorrect={false}
+        // The national field is the canonical phone-autofill target, so opt it
+        // into OS/browser autofill: textContentType on iOS, autoComplete on
+        // Android and react-native-web.
+        textContentType="telephoneNumber"
+        autoComplete="tel"
         placeholder={nationalPlaceholder}
         placeholderTextColor={COLORS.placeholder}
-        style={[defaultStyles.nationalInput, noOutline, textSizeStyle, styles?.nationalInput]}
+        style={[
+          defaultStyles.nationalInput,
+          noOutline,
+          textSizeStyle,
+          !editable && defaultStyles.inputDisabled,
+          styles?.nationalInput,
+        ]}
         onFocus={() => {
           // Route focus back to an incomplete calling code before national digits.
           if (editable && !isCallingCodeComplete) {

@@ -14,7 +14,7 @@ export interface CountryOption {
   config: CountryPhoneConfig;
   /** Localized display name, falling back to the dataset's English name. */
   name: string;
-  /** `"${name} ${code} ${callingCode} ${areaCode?}"` lowercased, for substring search. */
+  /** `"${name} ${code} ${callingCode} ${areaCode?}"` folded for substring search (see {@link normalizeForSearch}). */
   searchableLabel: string;
   /**
    * The single area-code prefix (raw digits) that pins this country within a
@@ -31,6 +31,19 @@ export interface CountryOption {
    * national display value on selection.
    */
   areaCodeDisplay?: string;
+}
+
+/**
+ * Folds a string for diacritic-insensitive substring search: lowercased with
+ * combining marks stripped, so "cote" matches "Côte d'Ivoire" and "reunion"
+ * matches "Réunion". Applied to both the option's `searchableLabel` and the
+ * user's query so the two are compared on the same footing.
+ */
+export function normalizeForSearch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
 }
 
 /**
@@ -51,20 +64,25 @@ export function getRegionLabel(locale: string, code: CountryCode, fallbackName: 
 }
 
 /**
- * Builds the picker's country options, optionally restricted to (and ordered
- * by) `allowedCountries`. Names are localized to `locale`; the result is sorted
+ * Builds the picker's country options. Names are localized to `locale`.
+ *
+ * Ordering follows `allowedCountries`: when it's given, options come back in
+ * exactly that order, so a consumer can float likely countries to the top
+ * (`["US", "CA", "GB", …]`). When it's omitted, the full catalog is sorted
  * alphabetically by localized name using the locale's collation.
  */
 export function buildCountryOptions(locale: string, allowedCountries?: readonly CountryCode[]): CountryOption[] {
   const collator = new Intl.Collator(locale);
 
-  return getCountryPhoneCatalog(allowedCountries)
-    .map((config) => {
-      const name = getRegionLabel(locale, config.code, config.name);
-      const areaCode = getUniqueAreaCode(config);
-      const areaCodeDisplay = areaCode ? formatAreaCode(getNationalMask(config), areaCode) : undefined;
-      const searchableLabel = `${name} ${config.code} ${config.callingCode}${areaCode ? ` ${areaCode}` : ""}`.toLowerCase();
-      return { config, name, searchableLabel, areaCode, areaCodeDisplay };
-    })
-    .sort((a, b) => collator.compare(a.name, b.name));
+  const options = getCountryPhoneCatalog(allowedCountries).map((config) => {
+    const name = getRegionLabel(locale, config.code, config.name);
+    const areaCode = getUniqueAreaCode(config);
+    const areaCodeDisplay = areaCode ? formatAreaCode(getNationalMask(config), areaCode) : undefined;
+    const searchableLabel = normalizeForSearch(`${name} ${config.code} ${config.callingCode}${areaCode ? ` ${areaCode}` : ""}`);
+    return { config, name, searchableLabel, areaCode, areaCodeDisplay };
+  });
+
+  // A caller-supplied allowedCountries list is authoritative order (getCountryPhoneCatalog
+  // already returns it in that order); only the full catalog is alphabetized.
+  return allowedCountries ? options : options.sort((a, b) => collator.compare(a.name, b.name));
 }
