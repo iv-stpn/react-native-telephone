@@ -1,10 +1,19 @@
 // One-shot transform: pull the offkeep phone dataset and rewrite it to be
 // self-contained (import CountryCode from ./countries instead of the external
-// react-address-tax package). Run with: bun run scripts/gen-phone-data.ts
+// react-address-tax package). Run with:
+//   bun run gen:phone-data <path-to-country-phone-data.ts>
+// or set PHONE_DATA_SRC. The source file isn't vendored in this repo.
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const SRC = "/Users/iv-stpn/Desktop/offkeep/packages/ui/src/lib/phone/country-phone-data.ts";
+const SRC = process.argv[2] ?? process.env.PHONE_DATA_SRC;
+if (!SRC) {
+  console.error(
+    "Missing source path. Usage: bun run gen:phone-data <path-to-country-phone-data.ts>\n" +
+      "or set the PHONE_DATA_SRC environment variable.",
+  );
+  process.exit(1);
+}
 const OUT = resolve(import.meta.dir, "../src/data/phone-data.ts");
 
 const raw = readFileSync(SRC, "utf8");

@@ -204,6 +204,9 @@ bun run demo        # web demo via react-native-web
 
 The phone dataset in `src/data/phone-data.ts` is generated; edit entries there
 directly to refine a country's mask, example, calling code, or validation regex.
+To regenerate from the upstream offkeep source (not vendored here), pass its
+path: `bun run gen:phone-data /path/to/country-phone-data.ts` (or set
+`PHONE_DATA_SRC`).
 
 ## License
 
