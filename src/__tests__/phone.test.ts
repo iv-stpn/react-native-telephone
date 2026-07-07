@@ -11,11 +11,14 @@ import {
   conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
+  formatAreaCode,
   getCountryFromLocale,
   getCountryPhoneCatalog,
   getCountryPhoneConfig,
   getDefaultCountryForCallingCode,
   getNationalMask,
+  getUniqueAreaCode,
+  nationalBelongsToCountry,
   nationalFromE164,
   normalizeCallingCode,
   normalizeNationalDigits,
@@ -247,6 +250,65 @@ describe("calling-code defaults", () => {
   });
 });
 
+describe("getUniqueAreaCode", () => {
+  const get = (code: CountryCode) => getUniqueAreaCode(getCountryPhoneConfig(code) as CountryPhoneConfig);
+
+  it("returns the single pinning prefix for a one-area-code shared country", () => {
+    // +44 crown dependencies and single-area NANP countries.
+    expect(get("GG")).toBe("1481");
+    expect(get("JE")).toBe("1534");
+    expect(get("IM")).toBe("1624");
+    expect(get("BS")).toBe("242"); // Bahamas (only NANP area code 242)
+    expect(get("AG")).toBe("268"); // Antigua & Barbuda
+    expect(get("YT")).toBe("639"); // Mayotte
+    expect(get("AX")).toBe("18"); // Åland
+  });
+
+  it("returns undefined for the default country of a shared code (no pinning prefix)", () => {
+    expect(get("GB")).toBeUndefined(); // +44 default
+    expect(get("US")).toBeUndefined(); // +1 default
+    expect(get("RU")).toBeUndefined(); // +7 default
+    expect(get("IT")).toBeUndefined(); // +39 default
+  });
+
+  it("returns undefined when several prefixes pin the country (no single area code)", () => {
+    expect(get("KZ")).toBeUndefined(); // +7 via 6 and 7
+    expect(get("BQ")).toBeUndefined(); // +599 via 31, 41, and 7
+    expect(get("CA")).toBeUndefined(); // +1 via dozens of Canadian area codes
+    expect(get("DO")).toBeUndefined(); // +1 via 809, 829, 849
+  });
+
+  it("returns undefined for a country that doesn't share its calling code", () => {
+    expect(get("FR")).toBeUndefined(); // +33 is unshared
+    expect(get("DE")).toBeUndefined();
+  });
+});
+
+describe("nationalBelongsToCountry", () => {
+  it("pins a shared-code number to its area-code country", () => {
+    // +1 684 → American Samoa, +1 204 → Canada, +44 1481 → Guernsey.
+    expect(nationalBelongsToCountry("+1", "6847331234", "AS")).toBe(true);
+    expect(nationalBelongsToCountry("+1", "2042342222", "CA")).toBe(true);
+    expect(nationalBelongsToCountry("+44", "1481123456", "GG")).toBe(true);
+  });
+
+  it("rejects a shared-code number whose area code belongs elsewhere", () => {
+    // 684 is American Samoa, not Canada; 204 is Canada, not the US default.
+    expect(nationalBelongsToCountry("+1", "6847331234", "CA")).toBe(false);
+    expect(nationalBelongsToCountry("+1", "2042342222", "US")).toBe(false);
+  });
+
+  it("attributes a default-country number only to the default", () => {
+    // 202 is a US area code (absent from the NANP map → default US).
+    expect(nationalBelongsToCountry("+1", "2025550123", "US")).toBe(true);
+    expect(nationalBelongsToCountry("+1", "2025550123", "CA")).toBe(false);
+  });
+
+  it("returns true for an unshared calling code", () => {
+    expect(nationalBelongsToCountry("+33", "612345678", "FR")).toBe(true);
+  });
+});
+
 describe("validateExtractedPhone", () => {
   it("accepts valid numbers and rejects junk", () => {
     expect(validateExtractedPhone("2025550123", US)).toBe(true);
@@ -285,6 +347,38 @@ describe("locale + catalog helpers", () => {
     const subset = getCountryPhoneCatalog(["FR", "US"]);
     expect(subset.map((c) => c.code)).toEqual(["FR", "US"]);
     expect(getCountryPhoneCatalog().length).toBe(250);
+  });
+});
+
+describe("formatAreaCode", () => {
+  it("wraps a NANP area code in parentheses, including the closing paren", () => {
+    // US/Bahamas mask: "([000]) [000]-[0000]". The closing ")" is a trailing
+    // literal that applyPhoneMask leaves pending mid-type; formatAreaCode
+    // flushes it so the seeded value reads "(242)", not "(242".
+    expect(formatAreaCode(getNationalMask(US), "242")).toBe("(242)");
+    expect(formatAreaCode(getNationalMask(US), "202")).toBe("(202)");
+  });
+
+  it("returns just the digits for a mask with no separators around the prefix", () => {
+    // Guernsey: "+44 [0000000000]" — no literals, so "1481" stays bare.
+    const GG = getCountryPhoneConfig("GG") as CountryPhoneConfig;
+    expect(formatAreaCode(getNationalMask(GG), "1481")).toBe("1481");
+  });
+
+  it("respects inner separators when the prefix spans a group boundary", () => {
+    // Vatican: "+39 [000] [000] [0000]", prefix "06698" crosses into group 2.
+    const VA = getCountryPhoneConfig("VA") as CountryPhoneConfig;
+    expect(formatAreaCode(getNationalMask(VA), "06698")).toBe("066 98");
+  });
+
+  it("returns empty for no digits", () => {
+    expect(formatAreaCode(getNationalMask(US), "")).toBe("");
+    expect(formatAreaCode(getNationalMask(US), "abc")).toBe("");
+  });
+
+  it("does not dangle a trailing space after the closing paren", () => {
+    // The ")" is followed by " " in the NANP mask; the flush must not leave it.
+    expect(formatAreaCode(getNationalMask(US), "242")).not.toMatch(/\s$/);
   });
 });
 

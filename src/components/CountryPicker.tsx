@@ -85,7 +85,10 @@ export function CountryPicker(props: RenderCountryPickerProps) {
                     <Text numberOfLines={1} style={[defaultStyles.optionName, styles?.optionName]}>
                       {option.name}
                     </Text>
-                    <Text style={[defaultStyles.optionCallingCode, styles?.optionCallingCode]}>{option.config.callingCode}</Text>
+                    <Text style={[defaultStyles.optionCallingCode, styles?.optionCallingCode]}>
+                      {option.config.callingCode}
+                      {option.areaCodeDisplay ? ` ${option.areaCodeDisplay}` : ""}
+                    </Text>
                     {isSelected ? <Text style={[defaultStyles.optionCheck, styles?.optionCheck]}>✓</Text> : null}
                   </Pressable>
                 );

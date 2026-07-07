@@ -4,7 +4,7 @@
 
 import type { CountryCode } from "../data/countries";
 import type { CountryPhoneConfig } from "../data/phone-data";
-import { getCountryPhoneCatalog } from "./phone";
+import { formatAreaCode, getCountryPhoneCatalog, getNationalMask, getUniqueAreaCode } from "./phone";
 
 /**
  * A single selectable country in the picker: its phone config, a (possibly
@@ -14,8 +14,23 @@ export interface CountryOption {
   config: CountryPhoneConfig;
   /** Localized display name, falling back to the dataset's English name. */
   name: string;
-  /** `"${name} ${code} ${callingCode}"` lowercased, for substring search. */
+  /** `"${name} ${code} ${callingCode} ${areaCode?}"` lowercased, for substring search. */
   searchableLabel: string;
+  /**
+   * The single area-code prefix (raw digits) that pins this country within a
+   * shared calling code (e.g. "1481" for Guernsey under "+44"), when exactly one
+   * exists. `undefined` for default countries, multi-prefix countries, and
+   * unshared codes. Used to prefill the national field and derive E.164 when
+   * such a country is selected.
+   */
+  areaCode?: string;
+  /**
+   * The area code formatted through the country's mask for display — e.g.
+   * "(242)" for the Bahamas, "1481" for Guernsey. `undefined` when `areaCode`
+   * is. Shown beside the calling code in the picker and used as the seeded
+   * national display value on selection.
+   */
+  areaCodeDisplay?: string;
 }
 
 /**
@@ -46,8 +61,10 @@ export function buildCountryOptions(locale: string, allowedCountries?: readonly 
   return getCountryPhoneCatalog(allowedCountries)
     .map((config) => {
       const name = getRegionLabel(locale, config.code, config.name);
-      const searchableLabel = `${name} ${config.code} ${config.callingCode}`.toLowerCase();
-      return { config, name, searchableLabel };
+      const areaCode = getUniqueAreaCode(config);
+      const areaCodeDisplay = areaCode ? formatAreaCode(getNationalMask(config), areaCode) : undefined;
+      const searchableLabel = `${name} ${config.code} ${config.callingCode}${areaCode ? ` ${areaCode}` : ""}`.toLowerCase();
+      return { config, name, searchableLabel, areaCode, areaCodeDisplay };
     })
     .sort((a, b) => collator.compare(a.name, b.name));
 }

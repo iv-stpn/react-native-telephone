@@ -19,9 +19,11 @@ import {
   conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
+  formatAreaCode,
   getCountryFromLocale,
   getDefaultCountryForCallingCode,
   getNationalMask,
+  nationalBelongsToCountry,
   nationalFromE164,
   normalizeCallingCode,
   normalizeNationalDigits,
@@ -295,16 +297,51 @@ export function PhoneInput({
     if (!nextOption || !selectedCountry) return;
 
     const nextConfig = nextOption.config;
-    // Keep the national digits the user already typed and just reflow them under
-    // the new mask. Deliberately *not* round-tripping through the old country's
-    // E.164 — doing so would splice the old calling code into the national part
-    // whenever the two countries' codes differ (e.g. US "+1" → FR would turn
-    // "612345678" into "1612345678"). E.164 is re-derived below from the new config.
-    const nextNational = extractedValue;
+    // Re-selecting the current country is a no-op: don't re-seed an area code or
+    // reset digits the user already typed.
+    if (nextCountry === country) return;
+
+    // Decide what national digits carry into the new country:
+    //  - A country pinned by a single area code within a shared calling code
+    //    (e.g. Guernsey "+44 1481", Bahamas "+1 (242)") seeds the national field
+    //    with that area code — the prefix is fixed, so the user continues with
+    //    the subscriber number. The display is mask-formatted (parentheses
+    //    included) via `formatAreaCode` so it reads "(242)" not "(242".
+    //  - Switching within the SAME calling code to a country with no singular
+    //    area code, when the typed number's area code belongs to a different
+    //    country (e.g. "+1 (684)" American Samoa → Canada), clears the field:
+    //    the foreign area code can't carry over. A 204 (Canadian) number →
+    //    Canada still belongs, so it reflows unchanged.
+    //  - Otherwise the typed digits reflow under the new mask. We deliberately
+    //    don't round-trip through the old country's E.164 — doing so would
+    //    splice the old calling code into the national part whenever the two
+    //    codes differ (e.g. US "+1" → FR would turn "612345678" into
+    //    "1612345678"). E.164 is re-derived below from the new config.
+    const nationalMask = getNationalMask(nextConfig);
+    const areaCode = nextOption.areaCode;
+    const sameCallingCode = selectedCountry.callingCode === nextConfig.callingCode;
+    const foreignAreaCode = sameCallingCode && !nationalBelongsToCountry(nextConfig.callingCode, extractedValue, nextCountry);
+
+    let nextNational: string;
+    let seedAreaCode = false;
+    if (areaCode) {
+      nextNational = areaCode;
+      seedAreaCode = true;
+    } else if (foreignAreaCode) {
+      nextNational = "";
+    } else {
+      nextNational = extractedValue;
+    }
+
+    const display = nextNational
+      ? seedAreaCode
+        ? formatAreaCode(nationalMask, areaCode as string)
+        : applyPhoneMask(nationalMask, nextNational)
+      : "";
 
     setCountry(nextCountry);
     setExtractedValue(nextNational);
-    setDisplayValue(nextNational ? applyPhoneMask(getNationalMask(nextConfig), nextNational) : "");
+    setDisplayValue(display);
     setCallingCodeInput(nextConfig.callingCode);
     onCountryChange?.(nextCountry);
 

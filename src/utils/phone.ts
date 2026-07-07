@@ -27,6 +27,37 @@ export function getDefaultCountryForCallingCode(callingCode: string): CountryCod
 }
 
 /**
+ * For a country that shares a calling code and is pinned by exactly ONE area
+ * prefix, returns that prefix — the leading national digits that identify the
+ * country (e.g. "+44" Guernsey → "1481", "+1" Bahamas → "242").
+ *
+ * Returns `undefined` for:
+ * - the default country of a shared code, which has no pinning prefix (e.g. GB
+ *   for "+44", US for "+1");
+ * - countries pinned by several prefixes, where no single area code represents
+ *   the country (e.g. Kazakhstan via "6" and "7", Bonaire via "31"/"41"/"7",
+ *   Canada via dozens of NANP area codes);
+ * - countries that don't share a calling code at all.
+ *
+ * Callers use this to show the area code beside the calling code in the picker
+ * and to prefill the national field when such a country is selected.
+ */
+export function getUniqueAreaCode(config: CountryPhoneConfig): string | undefined {
+  const prefixes = CALLING_CODE_AREA_PREFIXES.get(config.callingCode);
+  if (!prefixes) return undefined;
+
+  let matchCount = 0;
+  let prefix: string | undefined;
+  for (const [candidate, code] of prefixes) {
+    if (code === config.code) {
+      matchCount += 1;
+      prefix = candidate;
+    }
+  }
+  return matchCount === 1 ? prefix : undefined;
+}
+
+/**
  * Resolves the country implied by the leading national digits (area code) for a
  * shared calling code, using `CALLING_CODE_AREA_PREFIXES`. The longest matching
  * prefix wins. Returns `undefined` for unshared codes, partial input that
@@ -45,6 +76,31 @@ function resolveAreaCountry(callingCode: string, nationalDigits: string): Countr
     }
   }
   return bestCode;
+}
+
+/**
+ * Whether the given national digits, under a shared calling code, belong to
+ * `country` — i.e. their area-code prefix pins `country`, or (when `country`
+ * is the code's default) no non-default prefix matches. Returns `true` for an
+ * unshared calling code (the digits can only belong to its one country).
+ *
+ * Used to decide whether a typed number can carry over when the user switches
+ * to another country sharing the same calling code: selecting Canada while
+ * "+1 (684)" (American Samoa) is entered does not belong to Canada, so the
+ * field is reset rather than carrying a foreign area code over.
+ */
+export function nationalBelongsToCountry(callingCode: string, nationalDigits: string, country: CountryCode): boolean {
+  // Unshared calling code: no area-code disambiguation, so the digits can't
+  // carry a foreign area code — they belong to the country that owns the code.
+  const prefixes = CALLING_CODE_AREA_PREFIXES.get(callingCode);
+  if (!prefixes) return true;
+
+  const areaCountry = resolveAreaCountry(callingCode, nationalDigits);
+  if (areaCountry === country) return true;
+  if (areaCountry !== undefined) return false;
+  // No non-default prefix matched: the number belongs to the code's default
+  // country (if any), and only to that country.
+  return getDefaultCountryForCallingCode(callingCode) === country;
 }
 
 const catalog: readonly CountryPhoneConfig[] = COUNTRY_PHONE_DATA;
@@ -330,6 +386,62 @@ export function normalizeCallingCode(value: string) {
  */
 export function applyPhoneMask(mask: string, inputDigits: string) {
   return conformToMask(mask, normalizeNationalDigits(inputDigits));
+}
+
+/**
+ * Formats an area-code prefix for display — in the picker (beside the calling
+ * code) and as the seeded national value when a one-area-code country is
+ * selected — following the country's mask.
+ *
+ * Unlike {@link applyPhoneMask}, which buffers trailing literals so a separator
+ * never dangles mid-type, this *flushes* the literal run immediately following
+ * the prefix. That reveals the delimiter that wraps the area code — the ")" in a
+ * NANP "(242)" — instead of leaving it pending. Trailing spaces are trimmed so
+ * the picker never shows a dangling space. For masks with no separators around
+ * the prefix (e.g. Guernsey's "[0000000000]") the result is just the digits.
+ */
+export function formatAreaCode(nationalMask: string, areaCode: string): string {
+  const digits = normalizeNationalDigits(areaCode);
+  if (!digits) return "";
+
+  let result = "";
+  let pending = "";
+  let digitIdx = 0;
+  let maskIdx = 0;
+
+  while (maskIdx < nationalMask.length) {
+    const ch = nationalMask[maskIdx];
+
+    if (ch === "[") {
+      const closeIndex = nationalMask.indexOf("]", maskIdx);
+      if (closeIndex === -1) break;
+      const token = nationalMask.slice(maskIdx + 1, closeIndex);
+
+      for (let slotIdx = 0; slotIdx < token.length && digitIdx < digits.length; slotIdx += 1) {
+        const slot = token[slotIdx];
+        if (slot === "0" || slot === "9") {
+          result += pending + digits[digitIdx];
+          pending = "";
+          digitIdx += 1;
+        }
+      }
+      maskIdx = closeIndex + 1;
+      if (digitIdx >= digits.length) break;
+      continue;
+    }
+
+    pending += ch;
+    maskIdx += 1;
+  }
+
+  // Flush the literal run right after the last consumed digit so a wrapping
+  // delimiter (")") is revealed, then drop any trailing whitespace.
+  result += pending;
+  while (maskIdx < nationalMask.length && nationalMask[maskIdx] !== "[") {
+    result += nationalMask[maskIdx];
+    maskIdx += 1;
+  }
+  return result.replace(/\s+$/, "");
 }
 
 function isDigitChar(char: string): boolean {
