@@ -39,6 +39,8 @@ const DEFAULT_SEARCH_PLACEHOLDER = "Search countries";
 const DEFAULT_NO_RESULTS_LABEL = "No countries found";
 const DEFAULT_INVALID_ERROR = "Invalid phone number";
 const DEFAULT_CHOOSE_COUNTRY_LABEL = "Choose country";
+const DEFAULT_CALLING_CODE_LABEL = "Calling code";
+const DEFAULT_NATIONAL_LABEL = "Phone number";
 
 /** Controls when the "invalid phone number" error is revealed. */
 export type PhoneValidationMode =
@@ -497,6 +499,7 @@ export function PhoneInput({
       <TextInput
         ref={callingCodeInputRef}
         testID={testID ? `${testID}-calling-code` : undefined}
+        accessibilityLabel={DEFAULT_CALLING_CODE_LABEL}
         value={callingCodeInput}
         editable={editable}
         keyboardType="phone-pad"
@@ -524,6 +527,7 @@ export function PhoneInput({
       <TextInput
         ref={nationalInputRef}
         testID={testID ? `${testID}-national` : undefined}
+        accessibilityLabel={label ?? DEFAULT_NATIONAL_LABEL}
         value={displayValue}
         editable={editable}
         keyboardType="phone-pad"

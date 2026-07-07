@@ -65,7 +65,7 @@ export function CountryPicker(props: RenderCountryPickerProps) {
             autoFocus
           />
 
-          <ScrollView style={[defaultStyles.list, styles?.list]} keyboardShouldPersistTaps="handled">
+          <ScrollView style={[defaultStyles.list, styles?.list]} accessibilityRole="list" keyboardShouldPersistTaps="handled">
             {filtered.length === 0 ? (
               <Text style={[defaultStyles.empty, styles?.empty]}>{noResultsLabel}</Text>
             ) : (
