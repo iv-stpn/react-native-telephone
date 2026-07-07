@@ -184,6 +184,11 @@ export function PhoneInput({
   const lastEmittedValueRef = useRef(value);
   const callingCodeInputRef = useRef<TextInput>(null);
   const nationalInputRef = useRef<TextInput>(null);
+  // While true, the calling-code field's onFocus skips its usual "code is
+  // complete → bounce focus to the national field" redirect. Set during a
+  // select-all that targets the calling code so the field actually stays
+  // focused and its text stays selected.
+  const selectingAllCodeRef = useRef(false);
 
   const selectedCountryOption = useMemo(
     () => countryOptions.find((option) => option.config.code === country) ?? countryOptions[0],
@@ -468,8 +473,33 @@ export function PhoneInput({
 
   // Backspace at the start of an empty national field steps back into the
   // calling-code field, letting the user delete the code digit by digit.
+  // Select-all (Ctrl/Cmd+A) in an empty national field retargets the
+  // calling-code field — there's nothing to select here, so select the code
+  // instead. With a number typed, the default select-all (national text) runs.
   const handleNationalKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-    if (event.nativeEvent.key !== "Backspace" || extractedValue.length > 0) return;
+    const nativeEvent = event.nativeEvent as TextInputKeyPressEventData & { ctrlKey?: boolean; metaKey?: boolean };
+
+    if (
+      extractedValue.length === 0 &&
+      nativeEvent.key?.toLowerCase() === "a" &&
+      (nativeEvent.ctrlKey || nativeEvent.metaKey)
+    ) {
+      const codeRef = callingCodeInputRef.current;
+      if (codeRef) {
+        selectingAllCodeRef.current = true;
+        codeRef.focus();
+        if (Platform.OS === "web" && typeof (codeRef as unknown as HTMLInputElement).select === "function") {
+          (codeRef as unknown as HTMLInputElement).select();
+        }
+        requestAnimationFrame(() => {
+          selectingAllCodeRef.current = false;
+        });
+      }
+      event.preventDefault?.();
+      return;
+    }
+
+    if (nativeEvent.key !== "Backspace" || extractedValue.length > 0) return;
 
     const normalized = normalizeCallingCode(callingCodeInput);
     if (normalized.length <= 1) {
@@ -550,8 +580,9 @@ export function PhoneInput({
         placeholderTextColor={COLORS.placeholder}
         style={[defaultStyles.callingCodeInput, noOutline, textSizeStyle, { width: callingCodeWidth }, styles?.callingCodeInput]}
         onFocus={() => {
-          // A complete code sends focus onward to the national field.
-          if (editable && isCallingCodeComplete) {
+          // A complete code sends focus onward to the national field — unless
+          // a select-all is deliberately landing here to select the code.
+          if (editable && isCallingCodeComplete && !selectingAllCodeRef.current) {
             requestAnimationFrame(() => nationalInputRef.current?.focus());
             return;
           }
