@@ -506,8 +506,17 @@ export function resolvePastedNational(
   // 2) The selected country's calling code is prefixed and the number is too
   //    long to be national — peel the code. Reuses area-code disambiguation,
   //    so `1 204…` while US is selected resolves to Canada.
+  //
+  //    The peel is only safe when the input exceeds the mask by *at least* the
+  //    calling code's own digit length. Peeling consumes that many digits from
+  //    the front, so a smaller excess (an overtyped digit or two, not a pasted
+  //    calling code) would eat real national digits. This bites countries whose
+  //    national numbers can begin with the calling code itself — Mauritania
+  //    (+222, nationals start 2–4) or Russia (+7, nationals start 7) — where
+  //    typing one digit past the mask used to peel "222"/"7" off the front and
+  //    silently truncate "22 22 22 22 2" back to "22 22 22".
   const callingCodeDigits = getCallingCodeDigits(selected.callingCode);
-  if (callingCodeDigits && digits.startsWith(callingCodeDigits) && digits.length > selectedMax) {
+  if (callingCodeDigits && digits.startsWith(callingCodeDigits) && digits.length >= selectedMax + callingCodeDigits.length) {
     const synthetic = `+${digits}`;
     const parsed = parseCountryFromE164(synthetic, countries, selected.code);
     if (parsed && allowedSet.has(parsed.code)) {

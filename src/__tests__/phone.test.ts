@@ -346,6 +346,26 @@ describe("resolvePastedNational", () => {
     expect(r).toEqual({ country: "CA", national: "2042342222", normalized: true });
   });
 
+  it("does not peel the calling code on a one-digit overtype (Mauritania regression)", () => {
+    // MR is +222 and its nationals legitimately begin with 2, so an 8-digit
+    // number like "22 22 22 22" starts with the calling code. Typing a 9th "2"
+    // is an overtype, NOT a calling-code-prefixed paste — the excess (1) is
+    // shorter than the calling code (3 digits), so nothing is peeled and the
+    // typed digits survive intact (the 9th is dropped by the mask cap).
+    const MR = getCountryPhoneConfig("MR") as CountryPhoneConfig;
+    const r = resolvePastedNational("22 22 22 222", MR, all, allSet);
+    expect(r.normalized).toBe(false);
+    expect(normalizeNationalDigits(r.national)).toBe("222222222");
+  });
+
+  it("still peels a genuine calling-code-prefixed paste for a self-overlapping code", () => {
+    // "222 22 12 34 56" pasted into the MR field: the excess (3) matches the
+    // calling-code length, so the peel fires and recovers "22123456".
+    const MR = getCountryPhoneConfig("MR") as CountryPhoneConfig;
+    const r = resolvePastedNational("222 22 12 34 56", MR, all, allSet);
+    expect(r).toEqual({ country: "MR", national: "22123456", normalized: true });
+  });
+
   it("parses a +44 paste and strips a stray trunk prefix", () => {
     // GB mask includes the trunk, so the "0" is NOT stripped here.
     const r = resolvePastedNational("+44 7700 900123", US, all, allSet);
