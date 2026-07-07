@@ -24,6 +24,7 @@ const US = getCountryPhoneConfig("US") as CountryPhoneConfig;
 const FR = getCountryPhoneConfig("FR") as CountryPhoneConfig;
 const AU = getCountryPhoneConfig("AU") as CountryPhoneConfig; // trunk prefix "0"
 const GB = getCountryPhoneConfig("GB") as CountryPhoneConfig; // trunk prefix "0", mask INCLUDES the 0
+const DE = getCountryPhoneConfig("DE") as CountryPhoneConfig; // trunk prefix "0", mask INCLUDES the 0
 
 describe("dataset integrity", () => {
   it("has 250 entries with unique codes", () => {
@@ -346,5 +347,42 @@ describe("resolvePastedNational", () => {
   it("keeps a fitting national number on the current country (no transform)", () => {
     const r = resolvePastedNational("(204) 234-2222", US, all, allSet);
     expect(r).toEqual({ country: "US", national: "2042342222", normalized: false });
+  });
+});
+
+// Masks whose example includes the trunk must have enough slots to display the
+// full national number — otherwise the trailing digit is silently dropped on
+// paste/type. DE and GB previously had trunkless-sized masks with trunk-bearing
+// examples.
+describe("trunk-bearing masks fit their example (DE/GB regression)", () => {
+  const all = COUNTRY_PHONE_DATA;
+  const allSet = new Set(all.map((c) => c.code));
+
+  it("DE mask holds the full trunk-bearing example", () => {
+    const mask = getNationalMask(DE);
+    expect(countMaskDigitSlots(mask)).toBe(12);
+    expect(applyPhoneMask(mask, "015123456789")).toBe("0151 23456789");
+  });
+
+  it("GB mask holds the full trunk-bearing example", () => {
+    const mask = getNationalMask(GB);
+    expect(countMaskDigitSlots(mask)).toBe(11);
+    expect(applyPhoneMask(mask, "07700900123")).toBe("0770 0900123");
+  });
+
+  it("does not truncate a national paste that includes the trunk (DE)", () => {
+    // National form with trunk: no country switch, no transform — but the digits
+    // must survive intact (not sliced to the old 11-slot mask).
+    const r = resolvePastedNational("015123456789", DE, all, allSet);
+    expect(r.national).toBe("015123456789");
+    expect(r.normalized).toBe(false);
+    expect(validateExtractedPhone(r.national, DE)).toBe(true);
+  });
+
+  it("does not truncate a national paste that includes the trunk (GB)", () => {
+    const r = resolvePastedNational("07700900123", GB, all, allSet);
+    expect(r.national).toBe("07700900123");
+    expect(r.normalized).toBe(false);
+    expect(validateExtractedPhone(r.national, GB)).toBe(true);
   });
 });
