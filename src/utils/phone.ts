@@ -1,8 +1,7 @@
 // Dependency-free phone helpers: E.164 conversion, per-country validation,
 // locale → country resolution, and the mask formatter that powers live input
-// formatting. Ported from the internal offkeep PhoneInput library, with the
-// mask formatter rewritten to correctly emit leading literals (e.g. the "(" in
-// the US "([000]) [000]-[0000]" mask) instead of dropping them.
+// formatting. The mask formatter correctly emits leading literals (e.g. the "("
+// in the US "([000]) [000]-[0000]" mask) instead of dropping them.
 
 import { COUNTRY_CODES, type CountryCode, isCountryCode } from "../data/countries";
 import {
@@ -377,7 +376,7 @@ export function normalizeCallingCode(value: string) {
  * Literals are buffered and only flushed once the *next* digit is emitted, so a
  * trailing separator never dangles while the user is mid-type. Crucially, this
  * also emits *leading* literals (e.g. the "(" before the area code in the US
- * mask) as soon as the first digit arrives — the offkeep original dropped them.
+ * mask) as soon as the first digit arrives.
  *
  * This is the digit-only face of {@link conformToMask}: non-digits in
  * `inputDigits` are stripped first, so the result matches what `conformToMask`

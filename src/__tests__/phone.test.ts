@@ -73,7 +73,7 @@ describe("dataset integrity", () => {
 });
 
 describe("applyPhoneMask", () => {
-  it("emits leading literals once the first digit arrives (the offkeep bug)", () => {
+  it("emits leading literals once the first digit arrives", () => {
     const mask = getNationalMask(US); // "([000]) [000]-[0000]"
     expect(applyPhoneMask(mask, "2")).toBe("(2");
     expect(applyPhoneMask(mask, "202555")).toBe("(202) 555");
