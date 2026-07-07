@@ -54,6 +54,15 @@ A few behaviors worth knowing:
 - **Shared calling codes** (every `+1` country, `+44` for the UK and its
   dependencies) stay on your current selection instead of snapping to the first
   match. So a US number doesn't flip to Antigua the moment you type `+1`.
+- **Smart paste.** Pasting a full international number — `+1 (204) 234-2222` —
+  into either field recognizes the country code (and, for shared codes, the area
+  code), switches country if needed, and formats the national number correctly.
+  `+1 204…` lands on Canada; a stray trunk prefix is stripped where the mask
+  expects it (`+33 0612345678` → `6 12 34 56 78`). A plain national number that
+  fits the current country is never misread as a foreign calling code.
+- **Typed separators are honored.** Typing the mask's own `(`, `)`, `-`, or
+  space shows it immediately instead of swallowing it until the next digit
+  arrives. Separators typed in the wrong place are dropped so digits stay aligned.
 - **Validation** uses each country's national-number pattern. By default the
   error appears once the number fills the mask, or on blur — see
   [`validationMode`](#validation).
