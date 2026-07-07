@@ -1,14 +1,39 @@
 # react-native-telephone
 
-**[Live demo →](https://iv-stpn.github.io/react-native-telephone/)**
+A zero-dependency international phone input for React Native — and for the web,
+via [react-native-web](https://necolas.github.io/react-native-web/). You type a
+number and get a clean [E.164](https://en.wikipedia.org/wiki/E.164) string back,
+with per-country masking, a searchable country picker, and live validation for
+250 countries.
 
-A zero-dependency international phone input for React Native (and web, via
-react-native-web). Type a number, get a clean [E.164](https://en.wikipedia.org/wiki/E.164)
-string back — with per-country masking, a searchable country picker, and
-live validation for 250 countries.
+**[Try the live demo →](https://iv-stpn.github.io/react-native-telephone/)**
 
-No `react-native-svg`, no masking library, no flag assets. The only things it
-expects are `react` and `react-native`, both peer dependencies.
+## Features
+
+- **Zero dependencies.** No `react-native-svg`, no masking library, no flag
+  assets. It only expects `react` and `react-native` as peer dependencies.
+- **E.164 in, E.164 out.** The value you hold is always ready to store or send.
+- **Per-country masking** that formats the national number as you type.
+- **Searchable country picker** with a flag button and 250 countries.
+- **Live validation** against each country's national-number pattern.
+- **Smart paste** that recognizes a full international number and switches
+  country for you.
+- **Headless helpers** for parsing, formatting, and validating without any UI.
+
+## Contents
+
+- [Installation](#installation)
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [Controlled value](#controlled-value)
+- [Props](#props)
+- [Styling](#styling)
+- [Validation](#validation)
+- [Headless use](#headless-use)
+- [Development](#development)
+- [License](#license)
+
+## Installation
 
 ```bash
 npm install react-native-telephone
@@ -36,16 +61,17 @@ function Example() {
 
 `value` is always the E.164 string (`+14155550123`), so it's ready to store or
 send as-is. The masked, human-readable version (`(415) 555-0123`) lives inside
-the component; you never have to parse it back.
+the component — you never have to parse it back.
 
 ## How it works
 
 The field is split into two inputs behind one border: an editable **calling
 code** (`+1`, `+33`, …) and the **national number**. Type digits into the
-national side and they're formatted live against that country's mask; the flag
-button on the left opens a searchable picker. Editing the calling code — or
-picking a country — reflows the number under the new mask and keeps the digits
-you already typed.
+national side and they're formatted live against that country's mask. The flag
+button on the left opens a searchable picker.
+
+Editing the calling code — or picking a country — reflows the number under the
+new mask and keeps the digits you already typed.
 
 A few behaviors worth knowing:
 
@@ -65,7 +91,7 @@ A few behaviors worth knowing:
   arrives. Separators typed in the wrong place are dropped so digits stay aligned.
 - **Validation** uses each country's national-number pattern. By default the
   error appears once the number fills the mask, or on blur — see
-  [`validationMode`](#validation).
+  [Validation](#validation).
 
 ## Controlled value
 
@@ -80,13 +106,15 @@ string and it hydrates the country, calling code, and mask from it:
 
 ## Props
 
+Two props are required: `value` and `onChangeText`. Everything else is optional.
+
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
 | `value` | `string` | — | Controlled E.164 value. Empty string when blank. **Required.** |
 | `onChangeText` | `(value: string) => void` | — | Fires with the next E.164 value on every edit. **Required.** |
 | `onCountryChange` | `(country: CountryCode) => void` | — | Fires whenever the country changes. |
 | `onValidationChange` | `(isValid: boolean) => void` | — | Fires with validity on every edit and on blur. |
-| `allowedCountries` | `CountryCode[]` | all 250 | Restricts (and orders) the picker. |
+| `allowedCountries` | `CountryCode[]` | all 250 | Restricts the picker to these countries, in this exact order. Omit for all 250, alphabetized. |
 | `defaultCountry` | `CountryCode \| null` | locale → first | Initial country when `value` has none. |
 | `locale` | `string` | device locale | Localizes country names and picks a default. |
 | `label` | `string` | — | Label above the field. |
@@ -100,11 +128,11 @@ string and it hydrates the country, calling code, and mask from it:
 | `size` | `"sm" \| "md" \| "lg"` | `"md"` | |
 | `testID` | `string` | — | Sub-elements get `-calling-code`, `-national`, `-error` suffixes. |
 
-Styling and render props are covered below.
+Styling and render props are covered in [Styling](#styling).
 
 ## Styling
 
-Three levels, from lightest touch to full control:
+Three levels, from lightest touch to full control.
 
 **1. Per-slot overrides** via `styles` — a `StyleProp` for each piece of the
 default UI (`field`, `nationalInput`, `option`, `panel`, …). Merged on top of
@@ -152,7 +180,7 @@ import { Image } from "react-native";
 
 ### A note on flags
 
-Flags render as emoji by default — a country's flag emoji is literally its two
+Flags render as emoji by default. A country's flag emoji is literally its two
 ISO letters as Unicode regional-indicator symbols, so there's no image asset or
 flag library involved. That's what keeps the package dependency-free.
 
@@ -164,8 +192,9 @@ hard-codes the emoji, it just calls your renderer.
 ## Validation
 
 Every country carries a national-number regex. `onValidationChange` fires with
-the true validity on each edit and on blur, regardless of what's shown. What
-`validationMode` controls is only when the *built-in* error message appears:
+the true validity on each edit and on blur, regardless of what's shown on
+screen. What `validationMode` controls is only *when* the built-in error message
+appears:
 
 - `"onType"` (default) — as soon as the number fills the mask's required
   digits, or on blur.
@@ -202,11 +231,8 @@ bun run build       # tsup → dist/
 bun run demo        # web demo via react-native-web
 ```
 
-The phone dataset in `src/data/phone-data.ts` is generated; edit entries there
-directly to refine a country's mask, example, calling code, or validation regex.
-To regenerate from the upstream offkeep source (not vendored here), pass its
-path: `bun run gen:phone-data /path/to/country-phone-data.ts` (or set
-`PHONE_DATA_SRC`).
+The phone dataset lives in `src/data/phone-data.ts`. Edit entries there directly
+to refine a country's mask, example, calling code, or validation regex.
 
 ## License
 
