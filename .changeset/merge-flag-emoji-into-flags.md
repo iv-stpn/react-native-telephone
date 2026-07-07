@@ -2,7 +2,9 @@
 "react-native-telephone": minor
 ---
 
-Merge `src/utils/flag-emoji.ts` into `src/utils/flags.tsx` (single flag module).
+Consolidate the flag modules: `countryCodeToEmoji` now lives in its own pure
+`src/utils/emoji.ts`, and `src/utils/flags.tsx` holds the render-prop types and
+the default JSX renderer (importing the helper from `./emoji`).
 
 `FlagRenderProps` no longer includes an `emoji` field. The default renderer
 computes the emoji itself, and `countryCodeToEmoji` is exported from the
