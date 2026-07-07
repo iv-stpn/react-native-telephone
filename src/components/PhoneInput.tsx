@@ -56,6 +56,7 @@ export type PhoneValidationMode =
 export interface PhoneInputProps {
   /** Controlled E.164 value (e.g. "+14155550123"). Empty string when blank. */
   value: string;
+
   /** Fires with the next E.164 value on every edit. */
   onChangeText: (value: string) => void;
   /** Fires with the current country whenever it changes (picker, calling-code edit, or parsed from `value`). */
@@ -67,16 +68,17 @@ export interface PhoneInputProps {
   allowedCountries?: readonly CountryCode[];
   /** Initial country when `value` carries no country and the locale doesn't resolve one. */
   defaultCountry?: CountryCode | null;
+
   /**
    * BCP-47 locale used to localize country names and to infer the default
    * country (e.g. "en-US" → US). Defaults to the device locale.
    */
   locale?: string;
-
   label?: string;
+  hint?: string;
+
   /** Externally-controlled error. Takes precedence over the built-in validation error. */
   error?: string;
-  hint?: string;
   /** Message shown when the entered number fails validation. */
   invalidError?: string;
   /** When to reveal the built-in validation error. Defaults to "onType". */
@@ -94,6 +96,7 @@ export interface PhoneInputProps {
 
   /** Custom flag renderer (e.g. SVG/PNG flags). Defaults to an emoji glyph. */
   renderFlag?: RenderFlag;
+
   /** Replace the label/field/error shell around the input row. */
   renderContainer?: (props: RenderContainerProps) => ReactNode;
   /** Replace the country-picker modal entirely. */
@@ -101,9 +104,11 @@ export interface PhoneInputProps {
 
   pickerTitle?: string;
   pickerSearchPlaceholder?: string;
-  noCountriesFoundLabel?: string;
+
   /** Accessibility label for the flag button that opens the picker. */
   chooseCountryLabel?: string;
+  /** Message shown when no countries match the search query. */
+  noCountriesFoundLabel?: string;
 
   testID?: string;
 }
@@ -479,11 +484,7 @@ export function PhoneInput({
   const handleNationalKeyPress = (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
     const nativeEvent = event.nativeEvent as TextInputKeyPressEventData & { ctrlKey?: boolean; metaKey?: boolean };
 
-    if (
-      extractedValue.length === 0 &&
-      nativeEvent.key?.toLowerCase() === "a" &&
-      (nativeEvent.ctrlKey || nativeEvent.metaKey)
-    ) {
+    if (extractedValue.length === 0 && nativeEvent.key?.toLowerCase() === "a" && (nativeEvent.ctrlKey || nativeEvent.metaKey)) {
       const codeRef = callingCodeInputRef.current;
       if (codeRef) {
         selectingAllCodeRef.current = true;
