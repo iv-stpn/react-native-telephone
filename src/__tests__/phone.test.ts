@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { COUNTRY_PHONE_DATA, type CountryPhoneConfig, NANP_AREA_CODE_TO_COUNTRY } from "../data/phone-data";
 import {
   applyPhoneMask,
+  conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
   getCountryFromLocale,
@@ -13,6 +14,7 @@ import {
   normalizeCallingCode,
   normalizeNationalDigits,
   parseCountryFromE164,
+  resolvePastedNational,
   toE164,
   validateExtractedPhone,
 } from "../utils/phone";
@@ -21,6 +23,7 @@ import {
 const US = getCountryPhoneConfig("US") as CountryPhoneConfig;
 const FR = getCountryPhoneConfig("FR") as CountryPhoneConfig;
 const AU = getCountryPhoneConfig("AU") as CountryPhoneConfig; // trunk prefix "0"
+const GB = getCountryPhoneConfig("GB") as CountryPhoneConfig; // trunk prefix "0", mask INCLUDES the 0
 
 describe("dataset integrity", () => {
   it("has 250 entries with unique codes", () => {
@@ -233,5 +236,115 @@ describe("locale + catalog helpers", () => {
     const subset = getCountryPhoneCatalog(["FR", "US"]);
     expect(subset.map((c) => c.code)).toEqual(["FR", "US"]);
     expect(getCountryPhoneCatalog().length).toBe(250);
+  });
+});
+
+describe("conformToMask", () => {
+  const usMask = getNationalMask(US); // "([000]) [000]-[0000]"
+
+  it("matches applyPhoneMask for digit-only input", () => {
+    expect(conformToMask(usMask, "2")).toBe(applyPhoneMask(usMask, "2"));
+    expect(conformToMask(usMask, "2025550123")).toBe(applyPhoneMask(usMask, "2025550123"));
+    expect(conformToMask(usMask, "")).toBe("");
+  });
+
+  it("reveals a typed separator before the next digit earns it", () => {
+    // Typing ")" right after the area code shows it immediately, instead of
+    // swallowing it until the next digit arrives.
+    expect(conformToMask(usMask, "(204)")).toBe("(204)");
+    // A typed space after the closing paren is honored too.
+    expect(conformToMask(usMask, "(204) ")).toBe("(204) ");
+    expect(conformToMask(usMask, "(204) 2")).toBe("(204) 2");
+  });
+
+  it("drops a misplaced separator inside a group and keeps digits aligned", () => {
+    // The "-" inside the area code is dropped; the "4" still fills slot 3.
+    expect(conformToMask(usMask, "20-4")).toBe("(204");
+    // A "-" after a complete area code is dropped and the ") " auto-inserts.
+    expect(conformToMask(usMask, "204-234")).toBe("(204) 234");
+  });
+
+  it("caps digit emission at maxDigits", () => {
+    expect(conformToMask(usMask, "2042342222999", 10)).toBe("(204) 234-2222");
+    // Without maxDigits the surplus digits are formatted up to the mask's end.
+    expect(conformToMask(usMask, "2042342222999")).toBe("(204) 234-2222");
+  });
+
+  it("drops unrelated characters", () => {
+    expect(conformToMask(usMask, "abc204")).toBe("(204");
+    expect(conformToMask(usMask, ")204")).toBe("(204");
+  });
+});
+
+describe("resolvePastedNational", () => {
+  const all = COUNTRY_PHONE_DATA;
+  const allSet = new Set(all.map((c) => c.code));
+
+  it("parses an international paste and switches country by area code", () => {
+    // "+1 204…" is a Canadian number → switch to Canada, national "2042342222".
+    const r = resolvePastedNational("+1 (204) 234-2222", US, all, allSet);
+    expect(r).toEqual({ country: "CA", national: "2042342222", normalized: true });
+  });
+
+  it("keeps a US area code on the US selection", () => {
+    const r = resolvePastedNational("+1 (202) 555-0123", US, all, allSet);
+    expect(r).toEqual({ country: "US", national: "2025550123", normalized: true });
+  });
+
+  it("peels the selected country's calling code when the number is too long (no plus)", () => {
+    // "1 204 234 2222" while US is selected → peel the "1", area 204 → Canada.
+    const r = resolvePastedNational("1 204 234 2222", US, all, allSet);
+    expect(r).toEqual({ country: "CA", national: "2042342222", normalized: true });
+  });
+
+  it("parses a +44 paste and strips a stray trunk prefix", () => {
+    // GB mask includes the trunk, so the "0" is NOT stripped here.
+    const r = resolvePastedNational("+44 7700 900123", US, all, allSet);
+    expect(r.country).toBe("GB");
+    expect(r.national).toBe("7700900123");
+    expect(r.normalized).toBe(true);
+  });
+
+  it("strips the trunk prefix for a country whose mask excludes it (FR)", () => {
+    // FR mask excludes the trunk "0"; pasting "0612345678" strips it.
+    expect(resolvePastedNational("0612345678", FR, all, allSet)).toEqual({
+      country: "FR",
+      national: "612345678",
+      normalized: true,
+    });
+    // Same via the international form "+33 0612345678".
+    expect(resolvePastedNational("+33 0612345678", FR, all, allSet)).toEqual({
+      country: "FR",
+      national: "612345678",
+      normalized: true,
+    });
+  });
+
+  it("does not strip the trunk when the mask includes it (GB)", () => {
+    // GB's mask begins with the trunk "0", so a national "0207946..." keeps it.
+    const r = resolvePastedNational("07700 900123", GB, all, allSet);
+    expect(r.country).toBe("GB");
+    expect(r.national).toBe("07700900123");
+    expect(r.normalized).toBe(false);
+  });
+
+  it("does not misread a national number as a foreign calling code", () => {
+    // Pasting a US-formatted "(204) 234-2222" into a France field must NOT be
+    // peeled to Egypt ("+20…"); it stays on France as national digits.
+    const r = resolvePastedNational("(204) 234-2222", FR, all, allSet);
+    expect(r).toEqual({ country: "FR", national: "2042342222", normalized: false });
+  });
+
+  it("returns empty national for blank input", () => {
+    expect(resolvePastedNational("", US, all, allSet)).toEqual({
+      country: "US",
+      national: "",
+      normalized: false,
+    });
+  });
+
+  it("keeps a fitting national number on the current country (no transform)", () => {
+    const r = resolvePastedNational("(204) 234-2222", US, all, allSet);
+    expect(r).toEqual({ country: "US", national: "2042342222", normalized: false });
   });
 });

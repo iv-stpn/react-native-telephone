@@ -289,50 +289,216 @@ export function normalizeCallingCode(value: string) {
  * trailing separator never dangles while the user is mid-type. Crucially, this
  * also emits *leading* literals (e.g. the "(" before the area code in the US
  * mask) as soon as the first digit arrives — the offkeep original dropped them.
+ *
+ * This is the digit-only face of {@link conformToMask}: non-digits in
+ * `inputDigits` are stripped first, so the result matches what `conformToMask`
+ * produces for the same digit sequence.
  */
 export function applyPhoneMask(mask: string, inputDigits: string) {
-  const digits = normalizeNationalDigits(inputDigits);
-  if (!digits) return "";
+  return conformToMask(mask, normalizeNationalDigits(inputDigits));
+}
 
-  let digitIndex = 0;
-  let masked = "";
-  // Literals seen since the last emitted digit; flushed just before the next one.
+function isDigitChar(char: string): boolean {
+  return char >= "0" && char <= "9";
+}
+
+/**
+ * Conforms free-form text (as typed or pasted) to a mask, returning the display
+ * string. Unlike {@link applyPhoneMask}, which only ever sees digits, this walks
+ * the **raw text** so a separator the user explicitly types is honored: typing
+ * `)` right after the area code reveals it at once, instead of being stripped
+ * and only reappearing once the next digit "earns" it.
+ *
+ * Rules, walked in lockstep with the mask:
+ * - A mask literal matched by the next text char is emitted immediately
+ *   (pending literals flushed first) — this is what reveals a typed separator.
+ * - A mask literal met by a digit is buffered as pending, auto-inserted when
+ *   the slot consumes that digit (same behavior as `applyPhoneMask`).
+ * - A mask literal met by an unrelated char drops the char.
+ * - A required slot `[0]` met by a digit emits it; met by a non-digit it drops
+ *   the char and **stays on the slot**, so a misplaced separator inside a group
+ *   (e.g. `20-4`) doesn't push later digits into the wrong group.
+ * - An optional slot `[9]` met by a non-digit is skipped, leaving the char for
+ *   the next token (no `[9]` slots exist in the dataset today, but the grammar
+ *   allows them).
+ * - Digit emission stops once `maxDigits` is reached.
+ *
+ * For digit-only input the result is identical to `applyPhoneMask`.
+ */
+export function conformToMask(mask: string, text: string, maxDigits = Infinity): string {
+  if (!text) return "";
+
+  let result = "";
   let pendingLiterals = "";
+  let emitted = 0;
+  let textIdx = 0;
+  let maskIdx = 0;
 
-  for (let index = 0; index < mask.length; index += 1) {
-    const char = mask[index];
+  while (maskIdx < mask.length && textIdx < text.length) {
+    const maskChar = mask[maskIdx];
 
-    if (char === "[") {
-      const closeIndex = mask.indexOf("]", index);
+    if (maskChar === "[") {
+      const closeIndex = mask.indexOf("]", maskIdx);
       if (closeIndex === -1) break;
+      const token = mask.slice(maskIdx + 1, closeIndex);
 
-      const token = mask.slice(index + 1, closeIndex);
-      for (const slot of token) {
-        const digit = digits[digitIndex];
+      let slotIdx = 0;
+      while (slotIdx < token.length && textIdx < text.length) {
+        const slot = token[slotIdx];
+        const char = text[textIdx];
+        if (char === undefined) break;
 
-        if (slot === "0") {
-          // Required slot: stop the moment we run out of digits.
-          if (digit === undefined) return masked;
-          masked += pendingLiterals + digit;
-          pendingLiterals = "";
-          digitIndex += 1;
-        } else if (slot === "9") {
-          // Optional slot: consume a digit only when one is available.
-          if (digit !== undefined) {
-            masked += pendingLiterals + digit;
-            pendingLiterals = "";
-            digitIndex += 1;
+        if (slot !== "0" && slot !== "9") {
+          slotIdx += 1;
+          continue;
+        }
+
+        if (isDigitChar(char)) {
+          if (emitted >= maxDigits) {
+            textIdx = text.length;
+            break;
           }
+          result += pendingLiterals + char;
+          pendingLiterals = "";
+          emitted += 1;
+          textIdx += 1;
+          slotIdx += 1;
+        } else if (slot === "9") {
+          // Optional slot with no digit available: skip it, leave the char for
+          // the next mask token to evaluate.
+          slotIdx += 1;
+        } else {
+          // Required slot met by a non-digit: drop the char, stay on the slot so
+          // the next digit still fills it (a misplaced "-" inside the area code
+          // must not shift later digits into the next group).
+          textIdx += 1;
         }
       }
 
-      index = closeIndex;
+      maskIdx = closeIndex + 1;
       continue;
     }
 
-    // Literal separator — hold it until the next digit is actually emitted.
-    pendingLiterals += char;
+    // Literal separator.
+    const char = text[textIdx];
+    if (char === undefined) break;
+    if (char === maskChar) {
+      // The user typed this separator — reveal it immediately.
+      result += pendingLiterals + maskChar;
+      pendingLiterals = "";
+      textIdx += 1;
+      maskIdx += 1;
+    } else if (isDigitChar(char)) {
+      // A digit arrived — buffer the literal until the slot consumes it.
+      pendingLiterals += maskChar;
+      maskIdx += 1;
+    } else {
+      // Unrelated character — drop it.
+      textIdx += 1;
+    }
   }
 
-  return masked;
+  return result;
+}
+
+/**
+ * Whether a country's national mask excludes its trunk prefix — i.e. the
+ * example number does NOT begin with the trunk. True for FR/AU/DE (users dial
+ * the `0` nationally but the mask formats without it), false for GB whose mask
+ * includes the `0` as its first slot.
+ */
+function maskExcludesTrunk(config: CountryPhoneConfig): boolean {
+  if (!config.trunkPrefix) return false;
+  return !normalizeNationalDigits(config.example).startsWith(config.trunkPrefix);
+}
+
+/**
+ * Strips a leading trunk prefix from a national number when it overruns the
+ * mask — only for countries whose mask excludes the trunk. Handles pastes like
+ * `+33 0612345678` or `0612345678` so the leading `0` doesn't eat a digit slot.
+ */
+function stripTrunkIfOverlong(national: string, config: CountryPhoneConfig): string {
+  if (!config.trunkPrefix) return national;
+  const max = countMaskDigitSlots(getNationalMask(config));
+  if (national.length > max && national.startsWith(config.trunkPrefix) && maskExcludesTrunk(config)) {
+    return national.slice(config.trunkPrefix.length);
+  }
+  return national;
+}
+
+export interface ResolvedPaste {
+  country: CountryCode;
+  national: string;
+  /** `true` when the text was transformed (country switched or trunk stripped);
+   *  the caller should format `national` directly. `false` means "keep the raw
+   *  text" so user-typed separators are preserved by `conformToMask`. */
+  normalized: boolean;
+}
+
+/**
+ * Resolves the country and national digits implied by text pasted/typed into
+ * the national field, so a pasted `+1 (204) 234-2222` switches to Canada and
+ * yields `2042342222` instead of being naively digit-stripped and truncated.
+ *
+ * Detection is deliberately conservative — country recognition only fires on an
+ * explicit `+` prefix or on the *selected* country's own calling-code prefix,
+ * never on arbitrary digit peeling. So pasting `(204) 234-2222` into a France
+ * field is NOT misread as Egypt (`+20…`); it falls through to the default and is
+ * treated as national digits for the current country.
+ */
+export function resolvePastedNational(
+  text: string,
+  selected: CountryPhoneConfig,
+  countries: readonly CountryPhoneConfig[],
+  allowedSet: ReadonlySet<CountryCode>,
+): ResolvedPaste {
+  const digits = normalizeNationalDigits(text);
+  if (!digits) return { country: selected.code, national: "", normalized: false };
+
+  const selectedMax = countMaskDigitSlots(getNationalMask(selected));
+  const trimmed = text.trim();
+
+  // 1) Explicit international format ("+…"). Parse the country (with the current
+  //    selection as the sticky preference) and recover the national digits.
+  if (trimmed.startsWith("+")) {
+    const parsed = parseCountryFromE164(trimmed, countries, selected.code);
+    if (parsed && allowedSet.has(parsed.code)) {
+      const national = stripTrunkIfOverlong(nationalFromE164(trimmed, parsed), parsed);
+      return { country: parsed.code, national, normalized: true };
+    }
+    // Unresolvable "+…" — fall through and treat the digits as national input.
+  }
+
+  // 2) The selected country's calling code is prefixed and the number is too
+  //    long to be national — peel the code. Reuses area-code disambiguation,
+  //    so `1 204…` while US is selected resolves to Canada.
+  const callingCodeDigits = getCallingCodeDigits(selected.callingCode);
+  if (callingCodeDigits && digits.startsWith(callingCodeDigits) && digits.length > selectedMax) {
+    const synthetic = `+${digits}`;
+    const parsed = parseCountryFromE164(synthetic, countries, selected.code);
+    if (parsed && allowedSet.has(parsed.code)) {
+      const national = stripTrunkIfOverlong(nationalFromE164(synthetic, parsed), parsed);
+      const parsedMax = countMaskDigitSlots(getNationalMask(parsed));
+      if (national.length <= parsedMax) {
+        return { country: parsed.code, national, normalized: true };
+      }
+    }
+  }
+
+  // 3) A national number that overruns the mask by exactly the trunk prefix
+  //    (e.g. FR `0612345678` → `612345678`), only when the mask excludes the
+  //    trunk.
+  if (
+    selected.trunkPrefix &&
+    digits.startsWith(selected.trunkPrefix) &&
+    digits.length === selectedMax + selected.trunkPrefix.length &&
+    maskExcludesTrunk(selected) &&
+    digits.length > selectedMax
+  ) {
+    return { country: selected.code, national: digits.slice(selected.trunkPrefix.length), normalized: true };
+  }
+
+  // 4) Default: keep the current country. The caller conforms the raw text so
+  //    any separators the user typed are preserved.
+  return { country: selected.code, national: digits, normalized: false };
 }
