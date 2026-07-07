@@ -113,6 +113,22 @@ export function getCountryFromLocale(locale: string): CountryCode | null {
  *      (e.g. +1 → US, +44 → GB), instead of the first catalogue entry.
  *   3. The first catalogue entry sharing the code, as a last resort.
  */
+// Cache of `countries` sorted by calling-code length (desc), keyed by the input
+// array. parseCountryFromE164 is called on every keystroke of a controlled
+// field; without this it copies and re-sorts the full 250-entry catalog each
+// call. Keying on the array reference means the common case (the component's
+// memoized `configs`) sorts once and reuses forever.
+const sortByCallingCodeLengthCache = new WeakMap<readonly CountryPhoneConfig[], CountryPhoneConfig[]>();
+function sortByCallingCodeLength(countries: readonly CountryPhoneConfig[]): CountryPhoneConfig[] {
+  const cached = sortByCallingCodeLengthCache.get(countries);
+  if (cached) return cached;
+  const sorted = [...countries].sort(
+    (a, b) => getCallingCodeDigits(b.callingCode).length - getCallingCodeDigits(a.callingCode).length,
+  );
+  sortByCallingCodeLengthCache.set(countries, sorted);
+  return sorted;
+}
+
 export function parseCountryFromE164(
   value: string,
   countries: readonly CountryPhoneConfig[],
@@ -145,9 +161,7 @@ export function parseCountryFromE164(
     }
   }
 
-  const sorted = [...countries].sort(
-    (a, b) => getCallingCodeDigits(b.callingCode).length - getCallingCodeDigits(a.callingCode).length,
-  );
+  const sorted = sortByCallingCodeLength(countries);
 
   const match = sorted.find((country) => digits.startsWith(getCallingCodeDigits(country.callingCode)));
   if (!match) return null;
@@ -220,7 +234,7 @@ export function validateExtractedPhone(extractedNational: string, country: Count
   const national = normalizeNationalDigits(extractedNational);
   if (!national) return false;
 
-  const validator = new RegExp(country.nationalRegex);
+  const validator = getValidator(country);
   if (validator.test(national)) return true;
 
   if (country.trunkPrefix && !national.startsWith(country.trunkPrefix)) {
@@ -228,6 +242,19 @@ export function validateExtractedPhone(extractedNational: string, country: Count
   }
 
   return false;
+}
+
+// Compiled-regex cache keyed by config. validateExtractedPhone runs on every
+// keystroke (validation + onValidationChange); compiling 250 patterns each call
+// is wasteful when the same configs recur.
+const validatorCache = new WeakMap<CountryPhoneConfig, RegExp>();
+function getValidator(country: CountryPhoneConfig): RegExp {
+  let validator = validatorCache.get(country);
+  if (!validator) {
+    validator = new RegExp(country.nationalRegex);
+    validatorCache.set(country, validator);
+  }
+  return validator;
 }
 
 /**
