@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { COUNTRY_PHONE_DATA, type CountryPhoneConfig } from "../data/phone-data";
+import { COUNTRY_PHONE_DATA, type CountryPhoneConfig, NANP_AREA_CODE_TO_COUNTRY } from "../data/phone-data";
 import {
   applyPhoneMask,
   countMaskDigitSlots,
@@ -7,6 +7,7 @@ import {
   getCountryFromLocale,
   getCountryPhoneCatalog,
   getCountryPhoneConfig,
+  getDefaultCountryForCallingCode,
   getNationalMask,
   nationalFromE164,
   normalizeCallingCode,
@@ -20,7 +21,6 @@ import {
 const US = getCountryPhoneConfig("US") as CountryPhoneConfig;
 const FR = getCountryPhoneConfig("FR") as CountryPhoneConfig;
 const AU = getCountryPhoneConfig("AU") as CountryPhoneConfig; // trunk prefix "0"
-const AG = getCountryPhoneConfig("AG") as CountryPhoneConfig; // shares +1 with US
 
 describe("dataset integrity", () => {
   it("has 250 entries with unique codes", () => {
@@ -101,17 +101,110 @@ describe("parseCountryFromE164", () => {
     expect(parseCountryFromE164("+33612345678", all)?.code).toBe("FR");
   });
 
-  it("prefers the active country when several share a calling code", () => {
-    // "+1" is US, CA, AG, ... — without a preference the first catalog entry wins.
+  it("defaults shared calling codes to the biggest country, not the first entry", () => {
+    // No preference: +1 → US (was Antigua, the alphabetical first), +44 → GB,
+    // +7 → RU. A US area code (202) keeps +1 on the US default.
+    expect(parseCountryFromE164("+12025550123", all)?.code).toBe("US");
+    expect(parseCountryFromE164("+447700900123", all)?.code).toBe("GB");
+    expect(parseCountryFromE164("+79123456789", all)?.code).toBe("RU");
+  });
+
+  it("recognizes the +1 country from its NANP area code", () => {
+    // 204 is Canadian, 268 is Antigua, 809 is Dominican Republic.
+    expect(parseCountryFromE164("+12042345678", all)?.code).toBe("CA");
+    expect(parseCountryFromE164("+12681234567", all)?.code).toBe("AG");
+    expect(parseCountryFromE164("+18091234567", all)?.code).toBe("DO");
+    // A US area code resolves to the US default.
+    expect(parseCountryFromE164("+12025550123", all)?.code).toBe("US");
+  });
+
+  it("overrides the sticky preference when the area code belongs elsewhere", () => {
+    // US is selected, but 204 is a Canadian area code → switch to Canada.
+    expect(parseCountryFromE164("+12042345678", all, "US")?.code).toBe("CA");
+    // A US area code keeps the sticky US selection.
     expect(parseCountryFromE164("+12025550123", all, "US")?.code).toBe("US");
+    // Antigua sticks for a US-area-code number (area code 202 isn't Antiguan).
     expect(parseCountryFromE164("+12025550123", all, "AG")?.code).toBe("AG");
-    // No preference falls back to the first "+1" entry in the dataset.
-    expect(parseCountryFromE164("+12025550123", all)?.code).toBe(AG.code === "AG" ? "AG" : "AG");
+  });
+
+  it("does not flip on partial area codes", () => {
+    // Only two national digits typed — not enough to read an area code, so the
+    // sticky preference wins.
+    expect(parseCountryFromE164("+120", all, "US")?.code).toBe("US");
   });
 
   it("returns null for non-E.164 input", () => {
     expect(parseCountryFromE164("2025550123", all)).toBeNull();
     expect(parseCountryFromE164("+", all)).toBeNull();
+  });
+});
+
+describe("parseCountryFromE164 — non-NANP shared codes", () => {
+  const all = COUNTRY_PHONE_DATA;
+
+  it("recognizes +44 crown dependencies by their area code", () => {
+    expect(parseCountryFromE164("+441481123456", all)?.code).toBe("GG");
+    expect(parseCountryFromE164("+441534123456", all)?.code).toBe("JE");
+    expect(parseCountryFromE164("+441624123456", all)?.code).toBe("IM");
+    // A mainland UK mobile stays on the GB default.
+    expect(parseCountryFromE164("+447700900123", all)?.code).toBe("GB");
+  });
+
+  it("recognizes +7 Kazakhstan by the leading 6/7", () => {
+    expect(parseCountryFromE164("+77710009998", all)?.code).toBe("KZ");
+    expect(parseCountryFromE164("+76123456789", all)?.code).toBe("KZ");
+    // A Russian mobile (9xx) stays on the RU default.
+    expect(parseCountryFromE164("+79123456789", all)?.code).toBe("RU");
+  });
+
+  it("recognizes the remaining shared-code territories", () => {
+    expect(parseCountryFromE164("+262639123456", all)?.code).toBe("YT"); // Mayotte
+    expect(parseCountryFromE164("+3581851234", all)?.code).toBe("AX"); // Åland
+    expect(parseCountryFromE164("+4779123456", all)?.code).toBe("SJ"); // Svalbard
+    expect(parseCountryFromE164("+212528123456", all)?.code).toBe("EH"); // Western Sahara
+    expect(parseCountryFromE164("+390669812345", all)?.code).toBe("VA"); // Vatican
+    expect(parseCountryFromE164("+672112345", all)?.code).toBe("AQ"); // Australian Antarctic
+    // +599: 7 → Bonaire (BQ), 9 → Curaçao (default).
+    expect(parseCountryFromE164("+5997123456", all)?.code).toBe("BQ");
+    expect(parseCountryFromE164("+5999123456", all)?.code).toBe("CW");
+  });
+
+  it("overrides the sticky preference for non-NANP shared codes too", () => {
+    // GB selected, but 1534 is Jersey → switch.
+    expect(parseCountryFromE164("+441534123456", all, "GB")?.code).toBe("JE");
+    // RU selected, but a 7-prefixed number is Kazakhstan → switch.
+    expect(parseCountryFromE164("+77710009998", all, "RU")?.code).toBe("KZ");
+    // A Russian 9xx number keeps the sticky RU selection.
+    expect(parseCountryFromE164("+79123456789", all, "RU")?.code).toBe("RU");
+  });
+
+  it("does not flip on partial prefixes", () => {
+    // "+44 14" isn't enough to read a 4-digit dependency area code.
+    expect(parseCountryFromE164("+4414", all, "GB")?.code).toBe("GB");
+  });
+});
+
+describe("calling-code defaults", () => {
+  it("maps shared calling codes to the biggest country", () => {
+    expect(getDefaultCountryForCallingCode("+1")).toBe("US");
+    expect(getDefaultCountryForCallingCode("+44")).toBe("GB");
+    expect(getDefaultCountryForCallingCode("+7")).toBe("RU");
+    expect(getDefaultCountryForCallingCode("+590")).toBe("GP");
+    expect(getDefaultCountryForCallingCode("+672")).toBe("NF");
+  });
+
+  it("returns undefined for unshared / unknown calling codes", () => {
+    expect(getDefaultCountryForCallingCode("+33")).toBeUndefined();
+    expect(getDefaultCountryForCallingCode("+999")).toBeUndefined();
+  });
+
+  it("every default ISO code has a matching NANP area-code entry only for +1", () => {
+    // Sanity: the NANP area-code map covers Canada and the +1 dependencies.
+    expect(NANP_AREA_CODE_TO_COUNTRY.get("204")).toBe("CA");
+    expect(NANP_AREA_CODE_TO_COUNTRY.get("268")).toBe("AG");
+    expect(NANP_AREA_CODE_TO_COUNTRY.get("809")).toBe("DO");
+    // US area codes are deliberately absent (US is the +1 default).
+    expect(NANP_AREA_CODE_TO_COUNTRY.has("202")).toBe(false);
   });
 });
 

@@ -19,6 +19,7 @@ import {
   countMaskDigitSlots,
   countRequiredMaskDigits,
   getCountryFromLocale,
+  getDefaultCountryForCallingCode,
   getNationalMask,
   nationalFromE164,
   normalizeCallingCode,
@@ -322,7 +323,14 @@ export function PhoneInput({
       return;
     }
 
-    const activeMatch = matches.find((option) => option.config.code === country) ?? matches[0];
+    // Keep the active country if it shares the typed code; otherwise fall back
+    // to the default (biggest) country for that code (e.g. +1 → US) rather than
+    // the alphabetically-first option, then to the first option as a last resort.
+    const defaultCode = getDefaultCountryForCallingCode(nextCallingCode);
+    const activeMatch =
+      matches.find((option) => option.config.code === country) ??
+      (defaultCode ? matches.find((option) => option.config.code === defaultCode) : undefined) ??
+      matches[0];
     if (!activeMatch) {
       setCallingCodeInput(nextCallingCode);
       return;

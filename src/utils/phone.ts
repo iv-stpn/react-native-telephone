@@ -5,10 +5,47 @@
 // the US "([000]) [000]-[0000]" mask) instead of dropping them.
 
 import { COUNTRY_CODES, type CountryCode, isCountryCode } from "../data/countries";
-import { COUNTRY_PHONE_DATA, type CountryPhoneConfig } from "../data/phone-data";
+import {
+  CALLING_CODE_AREA_PREFIXES,
+  CALLING_CODE_DEFAULTS,
+  COUNTRY_PHONE_DATA,
+  type CountryPhoneConfig,
+} from "../data/phone-data";
 
 export { COUNTRY_CODES, type CountryCode, isCountryCode } from "../data/countries";
-export { COUNTRY_PHONE_DATA, type CountryPhoneConfig } from "../data/phone-data";
+export {
+  CALLING_CODE_AREA_PREFIXES,
+  CALLING_CODE_DEFAULTS,
+  COUNTRY_PHONE_DATA,
+  type CountryPhoneConfig,
+  NANP_AREA_CODE_TO_COUNTRY,
+} from "../data/phone-data";
+
+/** Returns the default (biggest) country for a shared calling code, if any. */
+export function getDefaultCountryForCallingCode(callingCode: string): CountryCode | undefined {
+  return CALLING_CODE_DEFAULTS.get(callingCode);
+}
+
+/**
+ * Resolves the country implied by the leading national digits (area code) for a
+ * shared calling code, using `CALLING_CODE_AREA_PREFIXES`. The longest matching
+ * prefix wins. Returns `undefined` for unshared codes, partial input that
+ * matches no full prefix, or prefixes belonging to the default country.
+ */
+function resolveAreaCountry(callingCode: string, nationalDigits: string): CountryCode | undefined {
+  const prefixes = CALLING_CODE_AREA_PREFIXES.get(callingCode);
+  if (!prefixes) return undefined;
+
+  let bestPrefix = "";
+  let bestCode: CountryCode | undefined;
+  for (const [prefix, code] of prefixes) {
+    if (prefix.length > bestPrefix.length && nationalDigits.startsWith(prefix)) {
+      bestPrefix = prefix;
+      bestCode = code;
+    }
+  }
+  return bestCode;
+}
 
 const catalog: readonly CountryPhoneConfig[] = COUNTRY_PHONE_DATA;
 
@@ -60,9 +97,14 @@ export function getCountryFromLocale(locale: string): CountryCode | null {
 
 /**
  * Given an E.164 value, finds the country whose calling code it starts with.
- * Longer calling codes are tested first so "+1" doesn't shadow "+1242", and
- * (like the source data) the first catalog entry wins when several countries
- * share a calling code (e.g. US/CA both "+1").
+ * Longer calling codes are tested first so "+1" doesn't shadow "+1242". When
+ * several countries share a calling code, the number is disambiguated by:
+ *   1. Area code — the leading national digits pin the country via
+ *      `CALLING_CODE_AREA_PREFIXES` (e.g. +1 204… → Canada, +44 1481… →
+ *      Guernsey, +7 7… → Kazakhstan).
+ *   2. The default (biggest) country for the code — see `CALLING_CODE_DEFAULTS`
+ *      (e.g. +1 → US, +44 → GB), instead of the first catalogue entry.
+ *   3. The first catalogue entry sharing the code, as a last resort.
  */
 export function parseCountryFromE164(
   value: string,
@@ -76,15 +118,23 @@ export function parseCountryFromE164(
   if (!digits) return null;
 
   // When the currently-selected country already shares this calling code, keep
-  // it. Many countries share a code (every NANP "+1" country, or +44 for GB and
-  // its crown dependencies), and without this the parser would snap to the first
-  // catalogue entry — flipping e.g. a US selection to Antigua the instant a "+1"
-  // number is typed. Preferring the active selection disambiguates in the user's
-  // favour; the plain calling-code match below still applies for external values.
+  // it — many countries share a code (every NANP "+1" country, +44 for GB and
+  // its crown dependencies, +7 for Russia and Kazakhstan), and without this the
+  // parser would flip the selection mid-type. Area-code recognition is allowed
+  // to override the sticky preference: typing "+1 204…" while US is selected
+  // switches to Canada, because the area code unambiguously belongs to Canada.
   if (preferred) {
     const preferredConfig = countries.find((country) => country.code === preferred);
-    if (preferredConfig && digits.startsWith(getCallingCodeDigits(preferredConfig.callingCode))) {
-      return preferredConfig;
+    if (preferredConfig) {
+      const ccDigits = getCallingCodeDigits(preferredConfig.callingCode);
+      if (digits.startsWith(ccDigits)) {
+        const areaCountry = resolveAreaCountry(preferredConfig.callingCode, digits.slice(ccDigits.length));
+        if (areaCountry && areaCountry !== preferred) {
+          const override = countries.find((country) => country.code === areaCountry);
+          if (override) return override;
+        }
+        return preferredConfig;
+      }
     }
   }
 
@@ -92,7 +142,40 @@ export function parseCountryFromE164(
     (a, b) => getCallingCodeDigits(b.callingCode).length - getCallingCodeDigits(a.callingCode).length,
   );
 
-  return sorted.find((country) => digits.startsWith(getCallingCodeDigits(country.callingCode))) ?? null;
+  const match = sorted.find((country) => digits.startsWith(getCallingCodeDigits(country.callingCode)));
+  if (!match) return null;
+
+  // All countries sharing the matched calling code are equally valid prefixes;
+  // disambiguate among them rather than taking the first.
+  const sameCode = sorted.filter((country) => country.callingCode === match.callingCode);
+  return disambiguateSharedCode(digits, match.callingCode, sameCode);
+}
+
+/**
+ * Picks one country from a set that all share the same calling code. The area
+ * code wins outright when it pins a specific country; otherwise the hardcoded
+ * default for the code is used; otherwise the first entry (the historical
+ * fallback).
+ */
+function disambiguateSharedCode(
+  digits: string,
+  callingCode: string,
+  candidates: readonly CountryPhoneConfig[],
+): CountryPhoneConfig | null {
+  const ccDigits = getCallingCodeDigits(callingCode);
+  const areaCountry = resolveAreaCountry(callingCode, digits.slice(ccDigits.length));
+  if (areaCountry) {
+    const config = candidates.find((country) => country.code === areaCountry);
+    if (config) return config;
+  }
+
+  const defaultCode = getDefaultCountryForCallingCode(callingCode);
+  if (defaultCode) {
+    const config = candidates.find((country) => country.code === defaultCode);
+    if (config) return config;
+  }
+
+  return candidates[0] ?? null;
 }
 
 /**
