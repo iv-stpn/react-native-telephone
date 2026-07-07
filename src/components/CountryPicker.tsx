@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import type { CountryCode } from "../data/countries";
-import { countryCodeToEmoji } from "../utils/flags";
 import { defaultStyles, noOutline } from "./styles";
 import type { RenderCountryPickerProps } from "./types";
 
@@ -82,7 +81,7 @@ export function CountryPicker(props: RenderCountryPickerProps) {
                     onPress={() => pick(code)}
                     style={[defaultStyles.option, isSelected && defaultStyles.optionSelected, styles?.option]}
                   >
-                    <View style={styles?.optionFlag}>{renderFlag({ code, emoji: countryCodeToEmoji(code), size: 24 })}</View>
+                    <View style={styles?.optionFlag}>{renderFlag({ code, size: 24 })}</View>
                     <Text numberOfLines={1} style={[defaultStyles.optionName, styles?.optionName]}>
                       {option.name}
                     </Text>

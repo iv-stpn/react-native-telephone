@@ -4,7 +4,7 @@
 
 export { COUNTRY_CODES, type CountryCode, isCountryCode } from "./data/countries";
 export { COUNTRY_PHONE_DATA, type CountryPhoneConfig } from "./data/phone-data";
-export { countryCodeToEmoji, type FlagRenderProps, type RenderFlag } from "./utils/flag-emoji";
+export { countryCodeToEmoji, type FlagRenderProps, type RenderFlag } from "./utils/flags";
 export { buildCountryOptions, type CountryOption, getRegionLabel } from "./utils/options";
 export {
   applyPhoneMask,

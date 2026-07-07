@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import type { CountryCode } from "../data/countries";
 import type { CountryPhoneConfig } from "../data/phone-data";
-import { countryCodeToEmoji, defaultRenderFlag, type RenderFlag } from "../utils/flags";
+import { defaultRenderFlag, type RenderFlag } from "../utils/flags";
 import { buildCountryOptions, type CountryOption } from "../utils/options";
 import {
   applyPhoneMask,
@@ -411,7 +411,6 @@ export function PhoneInput({
 
   const flagNode = renderFlag({
     code: selectedCountry.code,
-    emoji: countryCodeToEmoji(selectedCountry.code),
     size: sizeMetrics.fontSize + 6,
   });
 
