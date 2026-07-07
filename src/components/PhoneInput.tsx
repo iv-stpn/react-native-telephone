@@ -16,6 +16,7 @@ import { defaultRenderFlag, type RenderFlag } from "../utils/flags";
 import { buildCountryOptions, type CountryOption } from "../utils/options";
 import {
   applyPhoneMask,
+  conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
   getCountryFromLocale,
@@ -25,6 +26,7 @@ import {
   normalizeCallingCode,
   normalizeNationalDigits,
   parseCountryFromE164,
+  resolvePastedNational,
   toE164,
   validateExtractedPhone,
 } from "../utils/phone";
@@ -185,9 +187,6 @@ export function PhoneInput({
   );
   const selectedCountry = selectedCountryOption?.config;
 
-  const nationalMask = useMemo(() => (selectedCountry ? getNationalMask(selectedCountry) : ""), [selectedCountry]);
-  const maxNationalDigits = useMemo(() => countMaskDigitSlots(nationalMask), [nationalMask]);
-
   // Countries grouped by calling code, so typing a calling code can resolve to a country.
   const countriesByCallingCode = useMemo(() => {
     const map = new Map<string, CountryOption[]>();
@@ -199,6 +198,9 @@ export function PhoneInput({
     }
     return map;
   }, [countryOptions]);
+
+  // Config lookup by ISO code, used to resolve a paste-detected country switch.
+  const configByCode = useMemo(() => new Map(configs.map((config) => [config.code, config])), [configs]);
 
   const emitPhoneChange = (nextValue: string) => {
     lastEmittedValueRef.current = nextValue;
@@ -316,6 +318,16 @@ export function PhoneInput({
   const applyCallingCodeChange = (rawCallingCode: string, focusNationalOnMatch = false) => {
     if (!selectedCountry) return;
 
+    // More digits than any calling code (country codes are 1–3 digits) means a
+    // full number was pasted — or over-typed — into the code field. Route it
+    // through the national resolver so the country is detected and the number
+    // lands in the national field instead of leaving the code field stuck on an
+    // unroutable "+12…".
+    if (normalizeNationalDigits(rawCallingCode).length > 3) {
+      applyNationalInput(rawCallingCode, { focusNational: focusNationalOnMatch, resetCallingCode: true });
+      return;
+    }
+
     const nextCallingCode = normalizeCallingCode(rawCallingCode);
     const matches = countriesByCallingCode.get(nextCallingCode);
     if (!matches || matches.length === 0) {
@@ -361,25 +373,59 @@ export function PhoneInput({
     });
   };
 
-  const handleNationalChange = (formatted: string) => {
+  // Core handler for the national field (and for full-number pastes routed from
+  // the calling-code field). Resolves country + national digits — recognizing
+  // pasted international numbers (e.g. "+1 (204) 234-2222" → Canada,
+  // "2042342222") instead of naively digit-stripping and truncating — then
+  // formats and emits. When the input isn't transformed (normal typing, or a
+  // paste that fits the current country), the raw text is conformed so
+  // separators the user typed are revealed immediately.
+  const applyNationalInput = (
+    formatted: string,
+    { focusNational = false, resetCallingCode = false }: { focusNational?: boolean; resetCallingCode?: boolean } = {},
+  ) => {
     if (!selectedCountry) return;
 
-    // Re-extract from the formatted text (the mask reflows on every keystroke),
-    // capped at the mask's slot count so the stored value never outruns display.
-    let digits = normalizeNationalDigits(formatted);
-    if (maxNationalDigits > 0 && digits.length > maxNationalDigits) {
-      digits = digits.slice(0, maxNationalDigits);
+    const resolved = resolvePastedNational(formatted, selectedCountry, configs, allowedSet);
+    const config = configByCode.get(resolved.country) ?? selectedCountry;
+    const mask = getNationalMask(config);
+    const max = countMaskDigitSlots(mask);
+
+    let display: string;
+    let digits: string;
+    if (resolved.normalized) {
+      digits = resolved.national.slice(0, max);
+      display = conformToMask(mask, digits, max);
+    } else {
+      display = conformToMask(mask, formatted, max);
+      digits = normalizeNationalDigits(display).slice(0, max);
     }
 
-    const nextDisplay = applyPhoneMask(nationalMask, digits);
-    const nextE164 = toE164(digits, selectedCountry);
+    // A paste may switch the country (and calling code); resetCallingCode covers
+    // full-number pastes that arrived via the calling-code field and need it
+    // restored to the resolved country's code.
+    if (resolved.country !== country) {
+      setCountry(resolved.country);
+      onCountryChange?.(resolved.country);
+    }
+    if (resolved.country !== country || resetCallingCode) {
+      setCallingCodeInput(config.callingCode);
+    }
 
-    setDisplayValue(nextDisplay);
+    const nextE164 = toE164(digits, config);
+
+    setDisplayValue(display);
     setExtractedValue(digits);
     emitPhoneChange(nextE164);
-    onValidationChange?.(digits ? validateExtractedPhone(digits, selectedCountry) : false);
-    evaluateValidity(digits, selectedCountry);
+    onValidationChange?.(digits ? validateExtractedPhone(digits, config) : false);
+    evaluateValidity(digits, config);
+
+    if (focusNational) {
+      requestAnimationFrame(() => nationalInputRef.current?.focus());
+    }
   };
+
+  const handleNationalChange = (formatted: string) => applyNationalInput(formatted);
 
   // Backspace at the start of an empty national field steps back into the
   // calling-code field, letting the user delete the code digit by digit.
@@ -456,7 +502,10 @@ export function PhoneInput({
         keyboardType="phone-pad"
         autoCapitalize="none"
         autoCorrect={false}
-        maxLength={5}
+        // Generous cap so a full number pasted into the code field reaches the
+        // change handler (which routes it to the national field) instead of being
+        // truncated into an unroutable stub. Normal code entry stays 1–3 digits.
+        maxLength={24}
         placeholder="+"
         placeholderTextColor={COLORS.placeholder}
         style={[defaultStyles.callingCodeInput, noOutline, textSizeStyle, { width: callingCodeWidth }, styles?.callingCodeInput]}

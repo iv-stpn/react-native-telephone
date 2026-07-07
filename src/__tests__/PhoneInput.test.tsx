@@ -5,7 +5,16 @@ import { PhoneInput } from "../components/PhoneInput";
 
 // A tiny controlled wrapper, since PhoneInput is a controlled component: it
 // needs its `value` fed back to it to reflect what the user typed.
-function Harness({ onChange, ...props }: { onChange?: (v: string) => void; testID?: string; defaultCountry?: "US" | "FR" }) {
+function Harness({
+  onChange,
+  onCountryChange,
+  ...props
+}: {
+  onChange?: (v: string) => void;
+  onCountryChange?: (v: string) => void;
+  testID?: string;
+  defaultCountry?: "US" | "FR";
+}) {
   const [value, setValue] = useState("");
   return (
     <PhoneInput
@@ -17,6 +26,7 @@ function Harness({ onChange, ...props }: { onChange?: (v: string) => void; testI
         setValue(next);
         onChange?.(next);
       }}
+      onCountryChange={onCountryChange}
     />
   );
 }
@@ -79,5 +89,79 @@ describe("PhoneInput", () => {
     render(<PhoneInput testID="phone" locale="en-US" value="+33612345678" onChangeText={() => {}} />);
     expect(screen.getByTestId("phone-calling-code")).toHaveValue("+33");
     expect(screen.getByTestId("phone-national")).toHaveValue("6 12 34 56 78");
+  });
+
+  it("parses a pasted international number and switches country by area code", () => {
+    const onChange = vi.fn();
+    const onCountryChange = vi.fn();
+    render(<Harness onChange={onChange} onCountryChange={onCountryChange} defaultCountry="US" />);
+
+    // Pasting "+1 (204) 234-2222" recognizes the +1 code and the 204 area code
+    // (Canada), so the country switches to CA and the national number is
+    // formatted without the leading "1" being treated as a national digit.
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "+1 (204) 234-2222" } });
+
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+1");
+    expect(screen.getByTestId("phone-national")).toHaveValue("(204) 234-2222");
+    expect(onChange).toHaveBeenLastCalledWith("+12042342222");
+    expect(onCountryChange).toHaveBeenCalledWith("CA");
+  });
+
+  it("does not treat a fitting national paste as international", () => {
+    const onChange = vi.fn();
+    const onCountryChange = vi.fn();
+    render(<Harness onChange={onChange} onCountryChange={onCountryChange} defaultCountry="US" />);
+
+    // A plain US-formatted number (no "+") stays on the US selection.
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "(204) 234-2222" } });
+
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+1");
+    expect(screen.getByTestId("phone-national")).toHaveValue("(204) 234-2222");
+    expect(onChange).toHaveBeenLastCalledWith("+12042342222");
+    expect(onCountryChange).not.toHaveBeenCalled();
+  });
+
+  it("reveals a typed separator before the next digit arrives", () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} defaultCountry="US" />);
+
+    // Typing up through ")" — the closing paren shows immediately instead of
+    // being swallowed until the next digit "earns" it.
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "(204)" } });
+    expect(screen.getByTestId("phone-national")).toHaveValue("(204)");
+    expect(onChange).toHaveBeenLastCalledWith("+1204");
+  });
+
+  it("keeps digits aligned when a separator is typed mid-group", () => {
+    render(<Harness defaultCountry="US" />);
+    // A "-" inside the area code is dropped; the "4" still completes it.
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "20-4" } });
+    expect(screen.getByTestId("phone-national")).toHaveValue("(204");
+  });
+
+  it("routes a full number pasted into the calling-code field to the national field", () => {
+    const onChange = vi.fn();
+    const onCountryChange = vi.fn();
+    render(<Harness onChange={onChange} onCountryChange={onCountryChange} defaultCountry="US" />);
+
+    // Pasting into the small "+1" field switches country to Canada (area 204),
+    // fills the national field, and resets the calling-code field to "+1".
+    fireEvent.change(screen.getByTestId("phone-calling-code"), { target: { value: "+1 (204) 234-2222" } });
+
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+1");
+    expect(screen.getByTestId("phone-national")).toHaveValue("(204) 234-2222");
+    expect(onChange).toHaveBeenLastCalledWith("+12042342222");
+    expect(onCountryChange).toHaveBeenCalledWith("CA");
+  });
+
+  it("routes a +44 paste into the calling-code field and switches to GB", () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} defaultCountry="US" />);
+
+    fireEvent.change(screen.getByTestId("phone-calling-code"), { target: { value: "+44 7700 900123" } });
+
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+44");
+    expect(screen.getByTestId("phone-national")).toHaveValue("7700 900123");
+    expect(onChange).toHaveBeenLastCalledWith("+447700900123");
   });
 });
