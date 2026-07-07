@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { COUNTRY_PHONE_DATA, type CountryPhoneConfig, NANP_AREA_CODE_TO_COUNTRY } from "../data/phone-data";
+import {
+  CALLING_CODE_AREA_PREFIXES,
+  CALLING_CODE_DEFAULTS,
+  COUNTRY_PHONE_DATA,
+  type CountryPhoneConfig,
+  NANP_AREA_CODE_TO_COUNTRY,
+} from "../data/phone-data";
 import {
   applyPhoneMask,
   conformToMask,
@@ -37,6 +43,35 @@ describe("dataset integrity", () => {
     for (const config of COUNTRY_PHONE_DATA) {
       expect(config.mask.startsWith(config.callingCode)).toBe(true);
       expect(() => new RegExp(config.nationalRegex)).not.toThrow();
+    }
+  });
+
+  it("every mask begins with calling code + space, so getNationalMask round-trips", () => {
+    for (const config of COUNTRY_PHONE_DATA) {
+      expect(config.mask.startsWith(`${config.callingCode} `)).toBe(true);
+    }
+  });
+
+  it("every example fits its mask's digit slots and validates against its regex", () => {
+    for (const config of COUNTRY_PHONE_DATA) {
+      const exampleDigits = normalizeNationalDigits(config.example);
+      const slots = countMaskDigitSlots(getNationalMask(config));
+      expect(exampleDigits.length).toBeLessThanOrEqual(slots);
+      expect(validateExtractedPhone(exampleDigits, config)).toBe(true);
+    }
+  });
+
+  it("every disambiguation-map value resolves to a real config", () => {
+    for (const code of CALLING_CODE_DEFAULTS.values()) {
+      expect(getCountryPhoneConfig(code)).toBeDefined();
+    }
+    for (const prefixMap of CALLING_CODE_AREA_PREFIXES.values()) {
+      for (const code of prefixMap.values()) {
+        expect(getCountryPhoneConfig(code)).toBeDefined();
+      }
+    }
+    for (const code of NANP_AREA_CODE_TO_COUNTRY.values()) {
+      expect(getCountryPhoneConfig(code)).toBeDefined();
     }
   });
 });
