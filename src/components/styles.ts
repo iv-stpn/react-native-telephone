@@ -51,9 +51,6 @@ export const defaultStyles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.label,
   },
-  required: {
-    color: COLORS.required,
-  },
   // The bordered input row: flag button + calling-code input + national input.
   field: {
     width: "100%",

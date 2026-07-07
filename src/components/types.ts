@@ -38,7 +38,6 @@ export interface RenderContainerProps {
   /** Stable identifier, forwarded to the field's testID. */
   id: string;
   label?: string;
-  required?: boolean;
   error?: string;
   hint?: string;
   children: ReactNode;
@@ -70,7 +69,7 @@ export interface PhoneInputStyles {
   list: StyleProp<ViewStyle>;
   option: StyleProp<ViewStyle>;
   optionSelected: StyleProp<ViewStyle>;
-  optionFlag: StyleProp<TextStyle>;
+  optionFlag: StyleProp<ViewStyle>;
   optionName: StyleProp<TextStyle>;
   optionCallingCode: StyleProp<TextStyle>;
   optionCheck: StyleProp<TextStyle>;
