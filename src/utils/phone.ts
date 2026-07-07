@@ -90,9 +90,16 @@ export function getCountryPhoneCatalog(allowedCountries?: readonly CountryCode[]
 /** Extracts the ISO country from a BCP-47 locale (e.g. "en-US" → "US"), or null. */
 export function getCountryFromLocale(locale: string): CountryCode | null {
   const segments = locale.split(/[-_]/);
-  const region = segments[1]?.toUpperCase();
-  if (region?.length !== 2) return null;
-  return isCountryCode(region) ? region : null;
+  // The region subtag follows the language (and optional script): skip the
+  // language tag, then take the first 2-letter segment — that's the ISO region.
+  // Handles 3-segment locales like "zh-Hans-CN" and "en-Latn-US", which the old
+  // `segments[1]` lookup missed. A bare language tag ("es") has no region and
+  // returns null, even when the language code happens to match a country code.
+  for (let index = 1; index < segments.length; index += 1) {
+    const segment = segments[index]?.toUpperCase();
+    if (segment && segment.length === 2 && isCountryCode(segment)) return segment;
+  }
+  return null;
 }
 
 /**

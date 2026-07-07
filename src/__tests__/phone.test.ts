@@ -233,6 +233,19 @@ describe("locale + catalog helpers", () => {
     expect(getCountryFromLocale("xx-ZZ")).toBeNull();
   });
 
+  it("extracts the region from a 3-segment locale with a script subtag", () => {
+    expect(getCountryFromLocale("zh-Hans-CN")).toBe("CN");
+    expect(getCountryFromLocale("en-Latn-US")).toBe("US");
+    expect(getCountryFromLocale("sr-Latn-RS")).toBe("RS");
+  });
+
+  it("ignores a 3-digit numeric region and a bare language tag", () => {
+    expect(getCountryFromLocale("es-419")).toBeNull();
+    // "es" is both a language and a country code, but a bare language tag has
+    // no region — it must not resolve to Spain.
+    expect(getCountryFromLocale("es")).toBeNull();
+  });
+
   it("filters and orders the catalog by allowedCountries", () => {
     const subset = getCountryPhoneCatalog(["FR", "US"]);
     expect(subset.map((c) => c.code)).toEqual(["FR", "US"]);
