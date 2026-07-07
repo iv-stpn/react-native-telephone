@@ -1,19 +1,32 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
+import { Text } from "react-native";
 import { describe, expect, it, vi } from "vitest";
 import { PhoneInput } from "../components/PhoneInput";
+import type { RenderContainerProps, RenderCountryPickerProps, RenderFlag } from "../components/types";
+import type { CountryCode } from "../data/countries";
 
 // A tiny controlled wrapper, since PhoneInput is a controlled component: it
-// needs its `value` fed back to it to reflect what the user typed.
+// needs its `value` fed back to it to reflect what the user typed. Forwards the
+// commonly exercised props; everything else stays at its default.
 function Harness({
   onChange,
   onCountryChange,
+  onValidationChange,
   ...props
 }: {
   onChange?: (v: string) => void;
   onCountryChange?: (v: string) => void;
+  onValidationChange?: (v: boolean) => void;
   testID?: string;
-  defaultCountry?: "US" | "FR";
+  defaultCountry?: CountryCode;
+  validationMode?: "onType" | "onBlur" | "never";
+  editable?: boolean;
+  allowedCountries?: CountryCode[];
+  label?: string;
+  renderFlag?: RenderFlag;
+  renderContainer?: (props: RenderContainerProps) => ReactNode;
+  renderCountryPicker?: (props: RenderCountryPickerProps) => ReactNode;
 }) {
   const [value, setValue] = useState("");
   return (
@@ -21,12 +34,20 @@ function Harness({
       testID={props.testID ?? "phone"}
       locale="en-US"
       value={value}
+      label={props.label}
       defaultCountry={props.defaultCountry ?? "US"}
+      allowedCountries={props.allowedCountries}
+      validationMode={props.validationMode}
+      editable={props.editable}
       onChangeText={(next) => {
         setValue(next);
         onChange?.(next);
       }}
       onCountryChange={onCountryChange}
+      onValidationChange={onValidationChange}
+      renderFlag={props.renderFlag}
+      renderContainer={props.renderContainer}
+      renderCountryPicker={props.renderCountryPicker}
     />
   );
 }
@@ -163,5 +184,112 @@ describe("PhoneInput", () => {
     expect(screen.getByTestId("phone-calling-code")).toHaveValue("+44");
     expect(screen.getByTestId("phone-national")).toHaveValue("7700 900123");
     expect(onChange).toHaveBeenLastCalledWith("+447700900123");
+  });
+
+  it("fires onValidationChange with validity on each edit and on blur", () => {
+    const onValidationChange = vi.fn();
+    render(<Harness onValidationChange={onValidationChange} defaultCountry="US" />);
+
+    const national = screen.getByTestId("phone-national");
+    fireEvent.change(national, { target: { value: "2025550123" } }); // valid
+    expect(onValidationChange).toHaveBeenLastCalledWith(true);
+
+    fireEvent.change(national, { target: { value: "0000000000" } }); // invalid (fills mask)
+    expect(onValidationChange).toHaveBeenLastCalledWith(false);
+
+    fireEvent.blur(national);
+    expect(onValidationChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it("does not show the built-in error before blur when validationMode is onBlur", () => {
+    render(<Harness validationMode="onBlur" defaultCountry="US" />);
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "0000000000" } });
+    // Mask is full and invalid, but onBlur keeps the error hidden until blur.
+    expect(screen.queryByTestId("phone-error")).not.toBeInTheDocument();
+    fireEvent.blur(screen.getByTestId("phone-national"));
+    expect(screen.getByTestId("phone-error")).toHaveTextContent("Invalid phone number");
+  });
+
+  it("never shows the built-in error when validationMode is never", () => {
+    render(<Harness validationMode="never" defaultCountry="US" />);
+    fireEvent.change(screen.getByTestId("phone-national"), { target: { value: "0000000000" } });
+    fireEvent.blur(screen.getByTestId("phone-national"));
+    expect(screen.queryByTestId("phone-error")).not.toBeInTheDocument();
+  });
+
+  it("steps back into the calling code on backspace in an empty national field", () => {
+    render(<Harness defaultCountry="CA" />);
+    // Canada's calling code is +1; backspace on an empty national field should
+    // delete the last code digit rather than be a no-op.
+    const national = screen.getByTestId("phone-national");
+    fireEvent.keyDown(national, { key: "Backspace" });
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+");
+  });
+
+  it("renders a custom flag via renderFlag", () => {
+    const renderFlag: RenderFlag = ({ code }) => <Text testID={`flag-${code}`}>{code}</Text>;
+    render(<Harness renderFlag={renderFlag} defaultCountry="US" />);
+    expect(screen.getByTestId("flag-US")).toHaveTextContent("US");
+  });
+
+  it("renders a custom container via renderContainer", () => {
+    const renderContainer = (props: RenderContainerProps) => (
+      <div data-testid="custom-container">
+        <span>{props.label}</span>
+        {props.children}
+      </div>
+    );
+    render(<Harness label="My phone" renderContainer={renderContainer} defaultCountry="US" />);
+    expect(screen.getByTestId("custom-container")).toBeInTheDocument();
+    expect(screen.getByText("My phone")).toBeInTheDocument();
+    // The field row is still rendered inside the custom container.
+    expect(screen.getByTestId("phone-national")).toBeInTheDocument();
+  });
+
+  it("renders a custom picker via renderCountryPicker", () => {
+    const renderCountryPicker = (props: RenderCountryPickerProps) => (
+      <div data-testid="custom-picker">
+        <button type="button" onClick={() => props.onSelect("FR")}>
+          pick FR
+        </button>
+      </div>
+    );
+    const onCountryChange = vi.fn();
+    render(<Harness renderCountryPicker={renderCountryPicker} onCountryChange={onCountryChange} defaultCountry="US" />);
+    fireEvent.click(screen.getByLabelText("Choose country"));
+    fireEvent.click(screen.getByText("pick FR"));
+    expect(onCountryChange).toHaveBeenCalledWith("FR");
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+33");
+  });
+
+  it("disables the picker and inputs when editable is false", () => {
+    render(<Harness editable={false} defaultCountry="US" />);
+    expect(screen.getByLabelText("Choose country")).toBeDisabled();
+    // react-native-web expresses editable={false} on a TextInput as `readonly`.
+    expect(screen.getByTestId("phone-calling-code")).toHaveAttribute("readonly");
+    expect(screen.getByTestId("phone-national")).toHaveAttribute("readonly");
+  });
+
+  it("restricts and alpha-sorts the picker by localized name (allowedCountries)", () => {
+    render(<Harness allowedCountries={["DE", "FR", "US"]} />);
+    fireEvent.click(screen.getByLabelText("Choose country"));
+    const options = screen.getAllByRole("option");
+    // The caller's order governs the catalog; the picker sorts by localized
+    // name (en-US): France, Germany, United States.
+    expect(options.map((o) => o.getAttribute("data-testid"))).toEqual([
+      "rnt-country-option-FR",
+      "rnt-country-option-DE",
+      "rnt-country-option-US",
+    ]);
+  });
+
+  it("falls back to the locale's country when defaultCountry is absent", () => {
+    // No defaultCountry; locale fr-FR should seed France.
+    function FrHarness() {
+      const [value, setValue] = useState("");
+      return <PhoneInput testID="phone" locale="fr-FR" value={value} onChangeText={setValue} />;
+    }
+    render(<FrHarness />);
+    expect(screen.getByTestId("phone-calling-code")).toHaveValue("+33");
   });
 });
