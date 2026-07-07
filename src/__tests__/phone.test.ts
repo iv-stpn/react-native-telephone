@@ -11,6 +11,7 @@ import {
   conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
+  type CountryCode,
   formatAreaCode,
   getCountryFromLocale,
   getCountryPhoneCatalog,
