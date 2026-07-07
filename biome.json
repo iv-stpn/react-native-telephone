@@ -1,5 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
+  "plugins": ["./node_modules/biome-one-liner-plugin/oneLiner.grit"],
   "vcs": {
     "enabled": true,
     "clientKind": "git",

@@ -266,9 +266,7 @@ export function PhoneInput({
     if (!selectedCountry) return;
 
     const parsedCountry = parseCountryFromE164(value, configs, country);
-    if (parsedCountry && parsedCountry.code !== country && allowedSet.has(parsedCountry.code)) {
-      setCountry(parsedCountry.code);
-    }
+    if (parsedCountry && parsedCountry.code !== country && allowedSet.has(parsedCountry.code)) setCountry(parsedCountry.code);
 
     if (value !== lastEmittedValueRef.current) {
       const sourceCountry = parsedCountry ?? selectedCountry;
@@ -341,11 +339,8 @@ export function PhoneInput({
     if (areaCode) {
       nextNational = areaCode;
       seedAreaCode = true;
-    } else if (foreignAreaCode) {
-      nextNational = "";
-    } else {
-      nextNational = extractedValue;
-    }
+    } else if (foreignAreaCode) nextNational = "";
+    else nextNational = extractedValue;
 
     const display = nextNational
       ? seedAreaCode
@@ -411,9 +406,7 @@ export function PhoneInput({
     onValidationChange?.(extractedValue ? validateExtractedPhone(extractedValue, nextConfig) : false);
     evaluateValidity(extractedValue, nextConfig);
 
-    if (focusNationalOnMatch) {
-      requestAnimationFrame(() => nationalInputRef.current?.focus());
-    }
+    if (focusNationalOnMatch) requestAnimationFrame(() => nationalInputRef.current?.focus());
   };
 
   // Tapping anywhere in the field focuses the calling-code input until it's
@@ -461,9 +454,7 @@ export function PhoneInput({
       setCountry(resolved.country);
       onCountryChange?.(resolved.country);
     }
-    if (resolved.country !== country || resetCallingCode) {
-      setCallingCodeInput(config.callingCode);
-    }
+    if (resolved.country !== country || resetCallingCode) setCallingCodeInput(config.callingCode);
 
     const nextE164 = toE164(digits, config);
 
@@ -473,9 +464,7 @@ export function PhoneInput({
     onValidationChange?.(digits ? validateExtractedPhone(digits, config) : false);
     evaluateValidity(digits, config);
 
-    if (focusNational) {
-      requestAnimationFrame(() => nationalInputRef.current?.focus());
-    }
+    if (focusNational) requestAnimationFrame(() => nationalInputRef.current?.focus());
   };
 
   const handleNationalChange = (formatted: string) => applyNationalInput(formatted);
@@ -493,9 +482,8 @@ export function PhoneInput({
       if (codeRef) {
         selectingAllCodeRef.current = true;
         codeRef.focus();
-        if (Platform.OS === "web" && typeof (codeRef as unknown as HTMLInputElement).select === "function") {
+        if (Platform.OS === "web" && typeof (codeRef as unknown as HTMLInputElement).select === "function")
           (codeRef as unknown as HTMLInputElement).select();
-        }
         requestAnimationFrame(() => {
           selectingAllCodeRef.current = false;
         });
@@ -683,7 +671,7 @@ export function PhoneInput({
     )
   ) : null;
 
-  if (renderContainer) {
+  if (renderContainer)
     return (
       <>
         {renderContainer({
@@ -697,7 +685,6 @@ export function PhoneInput({
         {picker}
       </>
     );
-  }
 
   return (
     <View style={[defaultStyles.root, style, styles?.root]}>

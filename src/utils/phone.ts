@@ -293,9 +293,8 @@ export function validateExtractedPhone(extractedNational: string, country: Count
   const validator = getValidator(country);
   if (validator.test(national)) return true;
 
-  if (country.trunkPrefix && !national.startsWith(country.trunkPrefix)) {
+  if (country.trunkPrefix && !national.startsWith(country.trunkPrefix))
     return validator.test(`${country.trunkPrefix}${national}`);
-  }
 
   return false;
 }
@@ -566,9 +565,8 @@ function maskExcludesTrunk(config: CountryPhoneConfig): boolean {
 function stripTrunkIfOverlong(national: string, config: CountryPhoneConfig): string {
   if (!config.trunkPrefix) return national;
   const max = countMaskDigitSlots(getNationalMask(config));
-  if (national.length > max && national.startsWith(config.trunkPrefix) && maskExcludesTrunk(config)) {
+  if (national.length > max && national.startsWith(config.trunkPrefix) && maskExcludesTrunk(config))
     return national.slice(config.trunkPrefix.length);
-  }
   return national;
 }
 
@@ -634,9 +632,7 @@ export function resolvePastedNational(
     if (parsed && allowedSet.has(parsed.code)) {
       const national = stripTrunkIfOverlong(nationalFromE164(synthetic, parsed), parsed);
       const parsedMax = countMaskDigitSlots(getNationalMask(parsed));
-      if (national.length <= parsedMax) {
-        return { country: parsed.code, national, normalized: true };
-      }
+      if (national.length <= parsedMax) return { country: parsed.code, national, normalized: true };
     }
   }
 
@@ -649,9 +645,8 @@ export function resolvePastedNational(
     digits.length === selectedMax + selected.trunkPrefix.length &&
     maskExcludesTrunk(selected) &&
     digits.length > selectedMax
-  ) {
+  )
     return { country: selected.code, national: digits.slice(selected.trunkPrefix.length), normalized: true };
-  }
 
   // 4) Default: keep the current country. The caller conforms the raw text so
   //    any separators the user typed are preserved.
