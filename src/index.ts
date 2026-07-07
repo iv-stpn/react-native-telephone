@@ -25,4 +25,21 @@ export {
 } from "./data/phone-data";
 // Flag helpers (emoji glyph + the default renderer), for building custom flags.
 export { countryCodeToEmoji, defaultRenderFlag } from "./utils/flags";
-export { getDefaultCountryForCallingCode } from "./utils/phone";
+export type { ResolvedPaste } from "./utils/phone";
+export {
+  applyPhoneMask,
+  conformToMask,
+  countMaskDigitSlots,
+  countRequiredMaskDigits,
+  getCountryFromLocale,
+  getCountryPhoneConfig,
+  getDefaultCountryForCallingCode,
+  getNationalMask,
+  nationalFromE164,
+  normalizeCallingCode,
+  normalizeNationalDigits,
+  parseCountryFromE164,
+  resolvePastedNational,
+  toE164,
+  validateExtractedPhone,
+} from "./utils/phone";

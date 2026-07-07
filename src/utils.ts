@@ -9,6 +9,7 @@ export { type FlagRenderProps, type RenderFlag } from "./utils/flags";
 export { buildCountryOptions, type CountryOption, getRegionLabel } from "./utils/options";
 export {
   applyPhoneMask,
+  conformToMask,
   countMaskDigitSlots,
   countRequiredMaskDigits,
   getCountryFromLocale,
@@ -19,6 +20,7 @@ export {
   normalizeCallingCode,
   normalizeNationalDigits,
   parseCountryFromE164,
+  resolvePastedNational,
   toE164,
   validateExtractedPhone,
 } from "./utils/phone";
