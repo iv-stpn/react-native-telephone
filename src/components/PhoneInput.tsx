@@ -183,6 +183,10 @@ export function PhoneInput({
   const [focused, setFocused] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
+  // Actual rendered width of the calling-code text, measured from a hidden Text
+  // that mirrors the field's content in the exact same font (see below). 0 until
+  // the first onLayout fires, at which point a char-count estimate stands in.
+  const [callingCodeTextWidth, setCallingCodeTextWidth] = useState(0);
 
   // The last E.164 value this component emitted, so the sync effect can tell an
   // external `value` change apart from an echo of our own onChangeText.
@@ -527,7 +531,14 @@ export function PhoneInput({
   const sizeMetrics = SIZES[size];
   const textSizeStyle = { fontSize: sizeMetrics.fontSize };
   // Calling-code field widens with its content so it never clips "+1" vs "+376".
-  const callingCodeWidth = Math.max(callingCodeInput.length + 1, 2) * sizeMetrics.fontSize * 0.5;
+  // Width comes from an actual measurement of the rendered text (the hidden Text
+  // below), not a per-character estimate, so it's exact for any font. A few px of
+  // slack leaves room for the caret/cursor at the end. Before the first layout we
+  // fall back to a rough char-count estimate so the field isn't zero-width.
+  const CALLING_CODE_WIDTH_SLACK = 2;
+  const measuredText = callingCodeInput.length > 0 ? callingCodeInput : "+";
+  const estimatedWidth = Math.max(callingCodeInput.length + 1, 2) * sizeMetrics.fontSize * 0.5;
+  const callingCodeWidth = (callingCodeTextWidth || estimatedWidth) + CALLING_CODE_WIDTH_SLACK;
 
   const validationError = validationMode !== "never" && showValidationError ? invalidError : undefined;
   const displayedError = error ?? validationError;
@@ -592,6 +603,28 @@ export function PhoneInput({
         onBlur={onFieldBlur}
         onChangeText={(next) => applyCallingCodeChange(next, true)}
       />
+
+      {/*
+       * Off-screen probe used only to measure the real rendered width of the
+       * calling-code text. It carries the same font (size/family via the same
+       * style chain the input uses) and the same characters, so onLayout reports
+       * the exact width the input needs — no per-character estimate. Absolutely
+       * positioned so it never affects the row's layout; non-interactive and
+       * unmeasured by assistive tech.
+       */}
+      <Text
+        aria-hidden
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        numberOfLines={1}
+        style={[defaultStyles.callingCodeInput, textSizeStyle, styles?.callingCodeInput, defaultStyles.callingCodeMeasure]}
+        onLayout={(event) => {
+          const width = event.nativeEvent.layout.width;
+          setCallingCodeTextWidth((prev) => (Math.abs(prev - width) > 0.5 ? width : prev));
+        }}
+      >
+        {measuredText}
+      </Text>
 
       <TextInput
         ref={nationalInputRef}

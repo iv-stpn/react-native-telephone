@@ -86,6 +86,19 @@ export const defaultStyles = StyleSheet.create({
     color: COLORS.text,
     paddingVertical: 0,
   },
+  // Off-screen text probe (see PhoneInput) that measures the calling code's real
+  // rendered width. Pulled out of flow and given auto width so it reports the
+  // text's natural size without stretching or disturbing the row.
+  callingCodeMeasure: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: "auto",
+    opacity: 0,
+    // The probe is decorative; keep it clear of the accessibility tree on web.
+    // (Layout-only element, never shown.)
+    pointerEvents: "none",
+  },
   nationalInput: {
     flexGrow: 1,
     flexShrink: 1,
