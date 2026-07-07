@@ -526,7 +526,7 @@ export function PhoneInput({
   const sizeMetrics = SIZES[size];
   const textSizeStyle = { fontSize: sizeMetrics.fontSize };
   // Calling-code field widens with its content so it never clips "+1" vs "+376".
-  const callingCodeWidth = Math.max(callingCodeInput.length + 1, 2) * sizeMetrics.fontSize * 0.6;
+  const callingCodeWidth = Math.max(callingCodeInput.length + 1, 2) * sizeMetrics.fontSize * 0.5;
 
   const validationError = validationMode !== "never" && showValidationError ? invalidError : undefined;
   const displayedError = error ?? validationError;
