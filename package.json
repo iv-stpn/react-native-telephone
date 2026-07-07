@@ -98,7 +98,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
-    "biome-one-liner-plugin": "^1.2.0",
+    "biome-one-liner-plugin": "1.3.0",
     "jsdom": "^29.1.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
