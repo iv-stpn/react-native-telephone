@@ -1,6 +1,6 @@
 # react-native-telephone
 
-A zero-dependency international phone input for React Native — and for the web,
+An international phone input for React Native — and for the web,
 via [react-native-web](https://necolas.github.io/react-native-web/). You type a
 number and get a clean [E.164](https://en.wikipedia.org/wiki/E.164) string back,
 with per-country masking, a searchable country picker, and live validation for
@@ -10,8 +10,8 @@ with per-country masking, a searchable country picker, and live validation for
 
 ## Features
 
-- **Zero dependencies.** No `react-native-svg`, no masking library, no flag
-  assets. It only expects `react` and `react-native` as peer dependencies.
+- **Minimal dependencies.** No `react-native-svg`, no masking library, no flag
+  assets. Only `react`, `react-native`, and [`country-data-ts`](https://www.npmjs.com/package/country-data-ts) for the phone dataset.
 - **E.164 in, E.164 out.** The value you hold is always ready to store or send.
 - **Per-country masking** that formats the national number as you type.
 - **Searchable country picker** with a flag button and 250 countries.
@@ -182,7 +182,7 @@ import { Image } from "react-native";
 
 Flags render as emoji by default. A country's flag emoji is literally its two
 ISO letters as Unicode regional-indicator symbols, so there's no image asset or
-flag library involved. That's what keeps the package dependency-free.
+flag library involved. That's what keeps the package nearly dependency-free — the only runtime dependency is `country-data-ts` for the phone dataset.
 
 The catch: **iOS, macOS, and browsers show them; stock Android does not** (it
 falls back to the two letters, e.g. boxed "US"). If you ship to Android and want
@@ -204,12 +204,20 @@ appears:
 
 ## Headless use
 
-Need to parse, format, or validate without the UI? The `/utils` and `/codes`
-entry points are pure — no React, no React Native — so they're safe on a server
-or in a plain Node script:
+Need to parse, format, or validate without the UI? The subpaths below are pure — no React, no React Native — so they're safe on a server or in a plain Node script.
+
+| Subpath | Contents |
+| --- | --- |
+| `react-native-telephone/phone` | Phone utilities + `CountryCode`, `CountryPhoneConfig`, data constants |
+| `react-native-telephone/options` | `buildCountryOptions`, `getRegionLabel`, `normalizeForSearch` |
+| `react-native-telephone/emoji` | `countryCodeToEmoji` (no React Native import) |
+| `react-native-telephone/flags` | `defaultRenderFlag`, `countryCodeToEmoji` |
+| `react-native-telephone/styles` | `defaultStyles`, `COLORS`, `SIZES` |
+| `react-native-telephone/types` | `PhoneInputStyles`, `RenderCountryPickerProps`, and related types |
+| `react-native-telephone/codes` | `COUNTRY_CODES`, `CountryCode`, `isCountryCode` |
 
 ```ts
-import { toE164, validateExtractedPhone, getCountryPhoneConfig } from "react-native-telephone/utils";
+import { toE164, validateExtractedPhone, getCountryPhoneConfig } from "react-native-telephone/phone";
 
 const fr = getCountryPhoneConfig("FR")!;
 toE164("0612345678", fr);                 // "+33612345678"  (trunk 0 dropped)
@@ -218,6 +226,8 @@ validateExtractedPhone("612345678", fr);  // true
 
 ```ts
 import { COUNTRY_CODES, type CountryCode } from "react-native-telephone/codes";
+// or directly from the data package:
+import { COUNTRY_CODES, type CountryCode } from "country-data-ts/countries";
 ```
 
 ## Development
@@ -231,8 +241,7 @@ bun run build       # tsup → dist/
 bun run demo        # web demo via react-native-web
 ```
 
-The phone dataset lives in `src/data/phone-data.ts`. Edit entries there directly
-to refine a country's mask, example, calling code, or validation regex.
+The phone dataset comes from [`country-data-ts`](https://www.npmjs.com/package/country-data-ts).
 
 ## License
 

@@ -4,7 +4,7 @@ import { Text } from "react-native";
 import { describe, expect, it, vi } from "vitest";
 import { PhoneInput } from "../components/PhoneInput";
 import type { RenderContainerProps, RenderCountryPickerProps, RenderFlag } from "../components/types";
-import type { CountryCode } from "../data/countries";
+import type { CountryCode } from "country-data-ts/countries";
 
 // A tiny controlled wrapper, since PhoneInput is a controlled component: it
 // needs its `value` fed back to it to reflect what the user typed. Forwards the

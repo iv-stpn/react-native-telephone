@@ -22,6 +22,11 @@
     },
     "includes": ["**", "!dist/**", "!node_modules/**"]
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "double"
@@ -29,7 +34,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/**/*.{ts,tsx}", "demo/**/*.{ts,tsx}"],
+      "includes": ["**/*.{ts,tsx}", "!dist/**", "!node_modules/**"],
       "linter": {
         "rules": {
           "complexity": {

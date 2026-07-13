@@ -21,19 +21,89 @@
     "url": "https://github.com/iv-stpn/react-native-telephone.git"
   },
   "type": "module",
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "react-native": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/phone-input.cjs",
+  "module": "./dist/phone-input.js",
+  "react-native": "./dist/phone-input.js",
+  "types": "./dist/phone-input.d.ts",
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "types": "./dist/phone-input.d.ts",
+        "default": "./dist/phone-input.js"
       },
       "require": {
-        "types": "./dist/index.d.cts",
-        "default": "./dist/index.cjs"
+        "types": "./dist/phone-input.d.cts",
+        "default": "./dist/phone-input.cjs"
+      }
+    },
+    "./country-picker": {
+      "import": {
+        "types": "./dist/country-picker.d.ts",
+        "default": "./dist/country-picker.js"
+      },
+      "require": {
+        "types": "./dist/country-picker.d.cts",
+        "default": "./dist/country-picker.cjs"
+      }
+    },
+    "./phone": {
+      "import": {
+        "types": "./dist/phone.d.ts",
+        "default": "./dist/phone.js"
+      },
+      "require": {
+        "types": "./dist/phone.d.cts",
+        "default": "./dist/phone.cjs"
+      }
+    },
+    "./options": {
+      "import": {
+        "types": "./dist/options.d.ts",
+        "default": "./dist/options.js"
+      },
+      "require": {
+        "types": "./dist/options.d.cts",
+        "default": "./dist/options.cjs"
+      }
+    },
+    "./flags": {
+      "import": {
+        "types": "./dist/flags.d.ts",
+        "default": "./dist/flags.js"
+      },
+      "require": {
+        "types": "./dist/flags.d.cts",
+        "default": "./dist/flags.cjs"
+      }
+    },
+    "./emoji": {
+      "import": {
+        "types": "./dist/emoji.d.ts",
+        "default": "./dist/emoji.js"
+      },
+      "require": {
+        "types": "./dist/emoji.d.cts",
+        "default": "./dist/emoji.cjs"
+      }
+    },
+    "./styles": {
+      "import": {
+        "types": "./dist/styles.d.ts",
+        "default": "./dist/styles.js"
+      },
+      "require": {
+        "types": "./dist/styles.d.cts",
+        "default": "./dist/styles.cjs"
+      }
+    },
+    "./types": {
+      "import": {
+        "types": "./dist/types.d.ts",
+        "default": "./dist/types.js"
+      },
+      "require": {
+        "types": "./dist/types.d.cts",
+        "default": "./dist/types.cjs"
       }
     },
     "./codes": {
@@ -44,16 +114,6 @@
       "require": {
         "types": "./dist/codes.d.cts",
         "default": "./dist/codes.cjs"
-      }
-    },
-    "./utils": {
-      "import": {
-        "types": "./dist/utils.d.ts",
-        "default": "./dist/utils.js"
-      },
-      "require": {
-        "types": "./dist/utils.d.cts",
-        "default": "./dist/utils.cjs"
       }
     }
   },
@@ -108,5 +168,8 @@
     "typescript": "^5.9.3",
     "vite": "^8",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "country-data-ts": "^0.1.0"
   }
 }

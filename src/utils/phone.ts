@@ -3,22 +3,22 @@
 // formatting. The mask formatter correctly emits leading literals (e.g. the "("
 // in the US "([000]) [000]-[0000]" mask) instead of dropping them.
 
-import { COUNTRY_CODES, type CountryCode, isCountryCode } from "../data/countries";
+import { COUNTRY_CODES, type CountryCode, isCountryCode } from "country-data-ts/countries";
 import {
   CALLING_CODE_AREA_PREFIXES,
   CALLING_CODE_DEFAULTS,
   COUNTRY_PHONE_DATA,
   type CountryPhoneConfig,
-} from "../data/phone-data";
+} from "country-data-ts/phone-data";
 
-export { COUNTRY_CODES, type CountryCode, isCountryCode } from "../data/countries";
+export { COUNTRY_CODES, type CountryCode, isCountryCode } from "country-data-ts/countries";
 export {
   CALLING_CODE_AREA_PREFIXES,
   CALLING_CODE_DEFAULTS,
   COUNTRY_PHONE_DATA,
   type CountryPhoneConfig,
   NANP_AREA_CODE_TO_COUNTRY,
-} from "../data/phone-data";
+} from "country-data-ts/phone-data";
 
 /** Returns the default (biggest) country for a shared calling code, if any. */
 export function getDefaultCountryForCallingCode(callingCode: string): CountryCode | undefined {

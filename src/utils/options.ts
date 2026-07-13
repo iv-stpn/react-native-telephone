@@ -2,8 +2,8 @@
 // the component so the (Intl-powered) localization and search-label logic is
 // testable in isolation and doesn't drag JSX into the phone utilities.
 
-import type { CountryCode } from "../data/countries";
-import type { CountryPhoneConfig } from "../data/phone-data";
+import type { CountryCode } from "country-data-ts/countries";
+import type { CountryPhoneConfig } from "country-data-ts/phone-data";
 import { formatAreaCode, getCountryPhoneCatalog, getNationalMask, getUniqueAreaCode } from "./phone";
 
 /**

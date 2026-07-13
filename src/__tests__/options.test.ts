@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { CountryCode } from "../data/countries";
+import type { CountryCode } from "country-data-ts/countries";
 import { buildCountryOptions, getRegionLabel, normalizeForSearch } from "../utils/options";
 
 describe("normalizeForSearch", () => {

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import type { CountryCode } from "../data/countries";
+import type { CountryCode } from "country-data-ts/countries";
 import { normalizeForSearch } from "../utils/options";
 import { defaultStyles, noOutline } from "./styles";
 import type { RenderCountryPickerProps } from "./types";

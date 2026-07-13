@@ -12,7 +12,7 @@
 
 import type { ReactNode } from "react";
 import { Text } from "react-native";
-import type { CountryCode } from "../data/countries";
+import type { CountryCode } from "country-data-ts/countries";
 import { countryCodeToEmoji } from "./emoji";
 
 export { countryCodeToEmoji } from "./emoji";

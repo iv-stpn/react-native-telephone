@@ -5,7 +5,7 @@ import {
   COUNTRY_PHONE_DATA,
   type CountryPhoneConfig,
   NANP_AREA_CODE_TO_COUNTRY,
-} from "../data/phone-data";
+} from "country-data-ts/phone-data";
 import {
   applyPhoneMask,
   type CountryCode,

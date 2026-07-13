@@ -1,5 +1,4 @@
-// Lightweight entry point: just the country-code list and union type, so a
-// consumer can type against CountryCode without pulling in React/components.
-
-export type { CountryCode } from "./data/countries";
-export { COUNTRY_CODES, isCountryCode } from "./data/countries";
+// Country-code list and CountryCode union type — forwarded from country-data-ts.
+// Use this lightweight subpath when you only need the code list and type guard,
+// without pulling in the full phone dataset.
+export { COUNTRY_CODES, type CountryCode, isCountryCode } from "country-data-ts/countries";

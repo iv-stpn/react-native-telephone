@@ -10,8 +10,8 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
-import type { CountryCode } from "../data/countries";
-import type { CountryPhoneConfig } from "../data/phone-data";
+import type { CountryCode } from "country-data-ts/countries";
+import type { CountryPhoneConfig } from "country-data-ts/phone-data";
 import { defaultRenderFlag, type RenderFlag } from "../utils/flags";
 import { buildCountryOptions, type CountryOption } from "../utils/options";
 import {

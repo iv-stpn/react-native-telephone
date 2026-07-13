@@ -1,7 +1,17 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/codes.ts", "src/utils.ts"],
+  entry: {
+    "phone-input": "src/components/PhoneInput.tsx",
+    "country-picker": "src/components/CountryPicker.tsx",
+    phone: "src/utils/phone.ts",
+    options: "src/utils/options.ts",
+    flags: "src/utils/flags.tsx",
+    emoji: "src/utils/emoji.ts",
+    styles: "src/components/styles.ts",
+    types: "src/components/types.ts",
+    codes: "src/codes.ts",
+  },
   format: ["cjs", "esm"],
   dts: true,
   sourcemap: false,

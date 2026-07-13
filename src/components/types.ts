@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { StyleProp, TextStyle, ViewStyle } from "react-native";
-import type { CountryCode } from "../data/countries";
+import type { CountryCode } from "country-data-ts/countries";
 import type { RenderFlag } from "../utils/flags";
 import type { CountryOption } from "../utils/options";
 

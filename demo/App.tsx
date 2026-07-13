@@ -3,7 +3,8 @@
 // a restricted country list, and live E.164 + validity output.
 import { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import { type CountryCode, PhoneInput } from "../src/index";
+import type { CountryCode } from "country-data-ts/countries";
+import { PhoneInput } from "../src/components/PhoneInput";
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#f8fafc" },
