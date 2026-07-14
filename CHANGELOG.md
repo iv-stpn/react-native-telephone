@@ -1,5 +1,11 @@
 # react-native-telephone
 
+## 2.1.0
+
+### Minor Changes
+
+- [#8](https://github.com/iv-stpn/react-native-telephone/pull/8) [`10fd00f`](https://github.com/iv-stpn/react-native-telephone/commit/10fd00fd29c8c9c44e7ad36d6e4a2bedbb5e2e2a) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Expose `onFocus`, `onBlur`, `returnKeyType`, and `onSubmitEditing` props on `PhoneInput`. `onFocus`/`onBlur` fire once on true focus entry/exit and are not triggered by the internal calling-code↔national focus hop; `returnKeyType` and `onSubmitEditing` pass through to the national input.
+
 ## 2.0.0
 
 ### Major Changes
