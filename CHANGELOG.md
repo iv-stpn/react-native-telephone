@@ -1,5 +1,32 @@
 # react-native-telephone
 
+## 2.0.0
+
+### Major Changes
+
+- [`2c33cef`](https://github.com/iv-stpn/react-native-telephone/commit/2c33cef055d0953d5db18363297e05001db5a30e) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Fix the build under TypeScript 7 and make the package subpath-only.
+
+  **Build (TypeScript 7 compatibility)**
+
+  - Declarations are now emitted by `tsc --emitDeclarationOnly` instead of tsup's bundled `dts` path. `rollup-plugin-dts` loads the classic TypeScript compiler API (`ts.sys`, `createProgram`), which the TS7 native compiler no longer ships, so the old build crashed with `Cannot read properties of undefined (reading 'useCaseSensitiveFileNames')`.
+  - tsup now uses array entries, so JS/CJS/`.d.ts` co-locate under `dist/components/` and `dist/utils/`.
+
+  **Breaking — exports map**
+
+  - Removed the root `.` export and the legacy top-level `main`/`module`/`react-native`/`types` fields. The package is now subpath-only: import from `react-native-telephone/phone-input` (and the other subpaths) rather than the bare package name. All existing subpath names are unchanged.
+
+  **Refactor (internal only)**
+
+  - Split `utils/phoneCatalog.ts` into focused modules by external dependency — `phoneData` (dataset + lookups), `callingCodeDefaults`, `areaCodes`, `locale` — and moved the parse/E.164/validation logic into `phoneParse`. `utils/phone.ts` is now a pure barrel with an unchanged public surface, so importers of `react-native-telephone/phone` are unaffected. This removes stray unused external imports from the per-entry bundles.
+
+### Patch Changes
+
+- [`832e69b`](https://github.com/iv-stpn/react-native-telephone/commit/832e69b08b63aeb2a24faa40b1b953c1cbff5dce) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Test-only change. No public API or behavior changes.
+
+  - Split the monolithic `PhoneInput.test.tsx` into focused component suites (`formatting`, `picker`, `countrySelection`, `paste`, `validation`, `keyboard`, `rendering`) and `phone.test.ts` into per-module util suites (`phoneData`, `phoneMask`, `phoneParse`, `areaCodes`, `callingCodeDefaults`, `locale`), each mirroring the source module it exercises.
+  - Extracted shared test fixtures (the controlled `Harness` wrapper and the `requireConfig` config helpers) into a non-test `src/__tests__/support/` folder.
+  - Narrowed the Biome test override to `useFilenamingConvention` for `*.test.*` files so the rest of the ruleset applies to the split suites and their support files.
+
 ## 1.0.0
 
 ### Major Changes
