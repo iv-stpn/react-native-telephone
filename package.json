@@ -1,6 +1,6 @@
 {
   "name": "react-native-telephone",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Zero-dependency React Native international phone input with per-country masking and validation (runs on web via react-native-web)",
   "keywords": [
     "react-native",
