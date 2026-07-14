@@ -1,5 +1,113 @@
 # react-native-telephone
 
+## 1.0.0
+
+### Major Changes
+
+- [`a838503`](https://github.com/iv-stpn/react-native-telephone/commit/a838503ea1acbd0f41faa1204e2a083bd2d01738) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Replace local data files with `country-data-ts`; remove barrel files in favour of granular subpaths.
+
+  **Breaking changes**
+
+  - `react-native-telephone` (the main entry) no longer re-exports utilities, data constants, or flag helpers. It now only exports `PhoneInput` and `CountryPicker`.
+  - `react-native-telephone/utils` is removed. Migrate to the granular subpaths below.
+  - `CountryCode`, `CountryPhoneConfig`, `COUNTRY_CODES`, `COUNTRY_PHONE_DATA`, and the disambiguation maps now come from `country-data-ts` directly — or from `react-native-telephone/phone`, which re-exports them as typed companions.
+
+  **New subpath map**
+
+  | Subpath                          | What it exports                                                                    |
+  | -------------------------------- | ---------------------------------------------------------------------------------- |
+  | `react-native-telephone`         | `PhoneInput`, `CountryPicker`                                                      |
+  | `react-native-telephone/phone`   | All phone utilities + `country-data-ts` data/type re-exports                       |
+  | `react-native-telephone/options` | `buildCountryOptions`, `getRegionLabel`, `normalizeForSearch`                      |
+  | `react-native-telephone/flags`   | `defaultRenderFlag`, `countryCodeToEmoji`                                          |
+  | `react-native-telephone/emoji`   | `countryCodeToEmoji` (no React Native import)                                      |
+  | `react-native-telephone/styles`  | `defaultStyles`, `COLORS`, `SIZES`                                                 |
+  | `react-native-telephone/types`   | `PhoneInputStyles`, `RenderCountryPickerProps`, and related types                  |
+  | `react-native-telephone/codes`   | `COUNTRY_CODES`, `CountryCode`, `isCountryCode` (forwarded from `country-data-ts`) |
+
+  **Migration guide**
+
+  ```ts
+  // Before
+  import { PhoneInput, toE164, COUNTRY_CODES } from "react-native-telephone";
+  import { toE164, getCountryPhoneConfig } from "react-native-telephone/utils";
+  import { COUNTRY_CODES } from "react-native-telephone/codes";
+
+  // After
+  import { PhoneInput } from "react-native-telephone";
+  import {
+    toE164,
+    getCountryPhoneConfig,
+    COUNTRY_CODES,
+  } from "react-native-telephone/phone";
+  // or, for codes only:
+  import { COUNTRY_CODES } from "react-native-telephone/codes";
+  // or, direct from the source:
+  import { COUNTRY_CODES } from "country-data-ts/countries";
+  ```
+
+  **Other changes**
+
+  - The local `src/data/countries.ts` and `src/data/phone-data.ts` data files are replaced by the `country-data-ts` package dependency.
+
+### Minor Changes
+
+- [`58419b2`](https://github.com/iv-stpn/react-native-telephone/commit/58419b29ae935173aaa578e81b89063843f35575) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Picker search, accessibility, and autofill improvements; hand-maintained dataset.
+
+  **Behavior**
+
+  - `allowedCountries` now orders the picker as documented. It was described as
+    ordering the list, but the options were always re-sorted alphabetically by
+    localized name, discarding the passed order. The list now preserves the exact
+    order you pass (so you can float likely countries to the top); the full,
+    unrestricted catalog is still alphabetized.
+
+  **Accessibility / UX**
+
+  - Country search is now diacritic-insensitive: "cote" matches "Côte d'Ivoire"
+    and "reunion" matches "Réunion". Both the option labels and the query are
+    folded (lowercased, combining marks stripped) before matching, via the new
+    `normalizeForSearch` helper.
+  - Picker options now carry native `accessibilityRole="button"` and
+    `accessibilityState={{ selected }}` alongside the existing web ARIA, so
+    VoiceOver/TalkBack announce them as selectable and report the current
+    selection. The search field gained an `accessibilityLabel`.
+  - The national and calling-code inputs now advertise phone autofill
+    (`textContentType="telephoneNumber"` + `autoComplete="tel"` on the national
+    field, `tel-country-code` on the calling code), so the OS/browser offers to
+    fill them.
+  - Disabled fields now dim their input text (via the previously unused
+    `textDisabled` color), pairing with the muted disabled background instead of
+    showing full-contrast text.
+
+  **Cleanup**
+
+  - Removed the unused `COLORS.required` color.
+
+  **Tooling / tests**
+
+  - Removed the `gen-phone-data` build script. `src/data/phone-data.ts` is now
+    hand-maintained as the source of truth — edit country entries and the
+    shared-calling-code disambiguation maps directly.
+  - Added `src/__tests__/options.test.ts` covering `buildCountryOptions` (order
+    preservation, diacritic-folded search labels), `getRegionLabel`, and
+    `normalizeForSearch`.
+
+### Patch Changes
+
+- [`675e6b8`](https://github.com/iv-stpn/react-native-telephone/commit/675e6b87b2e979b8daaae7ee84c00dd09248ef3f) Thanks [@iv-stpn](https://github.com/iv-stpn)! - Internal refactor and tooling refresh. No public API or behavior changes — the exports map, component props, and utility signatures are all unchanged.
+
+  **Refactor (internal only)**
+
+  - Split the monolithic `PhoneInput.tsx` into focused modules: `PhoneShell`/`PhoneField` for presentation, `usePhoneInput`/`usePhoneCatalog` for state, and `phoneInputController`/`phoneController.types` for the handler logic (using a "latest ref" pattern to keep handler identities stable).
+  - Split `utils/phone.ts` into `utils/phoneCatalog.ts` (dataset + lookups) and `utils/phoneMask.ts` (the mask engine); `utils/phone.ts` re-exports both, so importers are unaffected.
+
+  **Tooling**
+
+  - Migrated Biome to the shared `@iv-stpn/biome-config` preset and added the drizzle/react/typescript best-practices plugins.
+  - Added Husky git hooks (`pre-commit`, `pre-push`) running test/lint/typecheck, with a CI/production-safe install script.
+  - Bumped dev dependencies (Biome, React Native, TypeScript, one-liner plugin, etc.).
+
 ## 0.4.0
 
 ### Minor Changes
