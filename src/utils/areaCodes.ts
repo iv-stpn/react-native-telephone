@@ -1,39 +1,13 @@
-// Catalog layer: the country dataset and every lookup over it — config by ISO
-// code, the filtered/ordered catalog, calling-code defaults, area-code pinning,
-// and BCP-47 locale → country. Depends only on country-data-ts; sits below the
-// parse/E.164 logic in ./phone (which imports from here). Split out so ./phone
-// stays focused and under the file-length budget.
+// Area-code logic for shared calling codes: pinning a country by its leading
+// national digits and deciding whether a national number belongs to a country.
+// Its only external dependency is CALLING_CODE_AREA_PREFIXES; the default-country
+// lookup it needs comes from ./callingCodeDefaults. Split from the catalog so the
+// picker (which only wants getUniqueAreaCode) doesn't drag in unrelated externals.
+// Re-exported from ./phone.
 
-import { type CountryCode, isCountryCode } from 'country-data-ts/countries';
-import {
-  CALLING_CODE_AREA_PREFIXES,
-  CALLING_CODE_DEFAULTS,
-  COUNTRY_PHONE_DATA,
-  type CountryPhoneConfig,
-} from 'country-data-ts/phone-data';
-
-const catalog: readonly CountryPhoneConfig[] = COUNTRY_PHONE_DATA;
-
-/** Fast lookup of a country's phone config by ISO code. */
-const CONFIG_BY_CODE: ReadonlyMap<CountryCode, CountryPhoneConfig> = new Map(catalog.map((config) => [config.code, config]));
-
-const COUNTRY_SEGMENT_SEPARATOR_REGEX = /[-_]/;
-
-/** Returns the default (biggest) country for a shared calling code, if any. */
-export function getDefaultCountryForCallingCode(callingCode: string): CountryCode | undefined {
-  return CALLING_CODE_DEFAULTS.get(callingCode);
-}
-
-/** Strips a calling code down to its bare digits (e.g. "+1" → "1"). */
-export function getCallingCodeDigits(callingCode: string): string {
-  return callingCode.replace(/\D/g, '');
-}
-
-/** Drops a leading trunk prefix from a national number, when present. */
-export function trimTrunkPrefix(value: string, trunkPrefix: string | null): string {
-  if (!(trunkPrefix && value.startsWith(trunkPrefix))) return value;
-  return value.slice(trunkPrefix.length);
-}
+import type { CountryCode } from 'country-data-ts/countries';
+import { CALLING_CODE_AREA_PREFIXES, type CountryPhoneConfig } from 'country-data-ts/phone-data';
+import { getDefaultCountryForCallingCode } from './callingCodeDefaults';
 
 /**
  * For a country that shares a calling code and is pinned by exactly ONE area
@@ -110,41 +84,4 @@ export function nationalBelongsToCountry(callingCode: string, nationalDigits: st
   // No non-default prefix matched: the number belongs to the code's default
   // country (if any), and only to that country.
   return getDefaultCountryForCallingCode(callingCode) === country;
-}
-
-/** Returns the phone config for a country code, or `undefined` when unknown. */
-export function getCountryPhoneConfig(code: CountryCode): CountryPhoneConfig | undefined {
-  return CONFIG_BY_CODE.get(code);
-}
-
-/**
- * Returns the phone catalog, optionally filtered to `allowedCountries`
- * (preserving the caller's order when a list is given, otherwise the built-in
- * alphabetical-by-code order of the dataset).
- */
-export function getCountryPhoneCatalog(allowedCountries?: readonly CountryCode[]): readonly CountryPhoneConfig[] {
-  if (!allowedCountries || allowedCountries.length === 0) return catalog;
-
-  const configs: CountryPhoneConfig[] = [];
-  for (const code of allowedCountries) {
-    const config = CONFIG_BY_CODE.get(code);
-    if (config) configs.push(config);
-  }
-  return configs;
-}
-
-/** Extracts the ISO country from a BCP-47 locale (e.g. "en-US" → "US"), or null. */
-export function getCountryFromLocale(locale: string): CountryCode | null {
-  const segments = locale.split(COUNTRY_SEGMENT_SEPARATOR_REGEX);
-
-  // The region subtag follows the language (and optional script): skip the
-  // language tag, then take the first 2-letter segment — that's the ISO region.
-  // Handles 3-segment locales like "zh-Hans-CN" and "en-Latn-US", which the old
-  // `segments[1]` lookup missed. A bare language tag ("es") has no region and
-  // returns null, even when the language code happens to match a country code.
-  for (let index = 1; index < segments.length; index += 1) {
-    const segment = segments[index]?.toUpperCase();
-    if (segment && segment.length === 2 && isCountryCode(segment)) return segment;
-  }
-  return null;
 }

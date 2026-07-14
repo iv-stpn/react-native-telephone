@@ -4,7 +4,9 @@
 
 import type { CountryCode } from 'country-data-ts/countries';
 import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
-import { formatAreaCode, getCountryPhoneCatalog, getNationalMask, getUniqueAreaCode } from './phone';
+import { getUniqueAreaCode } from './areaCodes';
+import { getCountryPhoneCatalog } from './phoneData';
+import { formatAreaCode, getNationalMask } from './phoneMask';
 
 /**
  * A single selectable country in the picker: its phone config, a (possibly

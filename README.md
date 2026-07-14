@@ -43,7 +43,7 @@ npm install react-native-telephone
 
 ```tsx
 import { useState } from "react";
-import { PhoneInput } from "react-native-telephone";
+import { PhoneInput } from "react-native-telephone/phone-input";
 
 function Example() {
   const [phone, setPhone] = useState("");

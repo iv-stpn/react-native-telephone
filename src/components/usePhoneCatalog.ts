@@ -1,8 +1,9 @@
 import type { CountryCode } from 'country-data-ts/countries';
 import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
 import { useMemo } from 'react';
+import { getCountryFromLocale } from '../utils/locale';
 import { buildCountryOptions, type CountryOption } from '../utils/options';
-import { getCountryFromLocale, parseCountryFromE164 } from '../utils/phone';
+import { parseCountryFromE164 } from '../utils/phoneParse';
 import type { PhoneInputProps } from './PhoneInput';
 
 /** Resolves the device locale, falling back to "en-US" when Intl is unavailable. */

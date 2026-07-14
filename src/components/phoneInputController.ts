@@ -1,6 +1,8 @@
 import type { CountryCode } from 'country-data-ts/countries';
 import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
 import { type NativeSyntheticEvent, Platform, type TextInputKeyPressEventData } from 'react-native';
+import { nationalBelongsToCountry } from '../utils/areaCodes';
+import { getDefaultCountryForCallingCode } from '../utils/callingCodeDefaults';
 import type { CountryOption } from '../utils/options';
 import {
   applyPhoneMask,
@@ -8,15 +10,11 @@ import {
   countMaskDigitSlots,
   countRequiredMaskDigits,
   formatAreaCode,
-  getDefaultCountryForCallingCode,
   getNationalMask,
-  nationalBelongsToCountry,
   normalizeCallingCode,
   normalizeNationalDigits,
-  resolvePastedNational,
-  toE164,
-  validateExtractedPhone,
-} from '../utils/phone';
+} from '../utils/phoneMask';
+import { resolvePastedNational, toE164, validateExtractedPhone } from '../utils/phoneParse';
 import type { ApplyNationalInputOptions, PhoneController } from './phoneController.types';
 
 function emitPhoneChange(c: PhoneController, nextValue: string): void {

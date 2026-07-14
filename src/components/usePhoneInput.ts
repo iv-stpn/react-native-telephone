@@ -8,14 +8,8 @@ import {
   type TextInput,
   type TextInputKeyPressEventData,
 } from 'react-native';
-import {
-  applyPhoneMask,
-  getNationalMask,
-  nationalFromE164,
-  normalizeCallingCode,
-  parseCountryFromE164,
-  toE164,
-} from '../utils/phone';
+import { applyPhoneMask, getNationalMask, normalizeCallingCode } from '../utils/phoneMask';
+import { nationalFromE164, parseCountryFromE164, toE164 } from '../utils/phoneParse';
 import type { PhoneInputProps } from './PhoneInput';
 import type { PhoneController, PhoneInputView } from './phoneController.types';
 import {
