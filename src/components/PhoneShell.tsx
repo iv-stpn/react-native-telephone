@@ -90,6 +90,8 @@ export function PhoneShell({ view, props }: PhoneShellProps): ReactNode {
       placeholder={props.placeholder}
       chooseCountryLabel={props.chooseCountryLabel ?? DEFAULT_CHOOSE_COUNTRY_LABEL}
       renderFlag={props.renderFlag ?? defaultRenderFlag}
+      returnKeyType={props.returnKeyType}
+      onSubmitEditing={props.onSubmitEditing}
       styles={styles}
     />
   );

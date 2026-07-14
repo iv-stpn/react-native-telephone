@@ -1,6 +1,13 @@
 import type { CountryCode } from 'country-data-ts/countries';
 import type { ReactNode } from 'react';
-import type { StyleProp, ViewStyle } from 'react-native';
+import type {
+  NativeSyntheticEvent,
+  ReturnKeyTypeOptions,
+  StyleProp,
+  TargetedEvent,
+  TextInputSubmitEditingEventData,
+  ViewStyle,
+} from 'react-native';
 import type { RenderFlag } from '../utils/flags';
 import { PhoneShell } from './PhoneShell';
 import type { PhoneInputSize, PhoneInputStyles, RenderContainerProps, RenderCountryPickerProps } from './types';
@@ -50,6 +57,15 @@ export type PhoneInputProps = {
   editable?: boolean;
   autoFocus?: boolean;
   size?: PhoneInputSize;
+
+  /** Fires when focus leaves the field (after internal blur/validation). Not fired on the internal calling-code↔national hop. */
+  onBlur?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  /** Fires when the field gains focus (after internal focus handling). Not fired on the internal calling-code↔national hop. */
+  onFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  /** Passthrough to the internal national TextInput's return key. */
+  returnKeyType?: ReturnKeyTypeOptions;
+  /** Passthrough to the internal national TextInput; fires on keyboard submit. */
+  onSubmitEditing?: (event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
 
   /** Root-container style (the label/field/error column). */
   style?: StyleProp<ViewStyle>;

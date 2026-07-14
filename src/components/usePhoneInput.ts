@@ -5,6 +5,7 @@ import {
   type LayoutChangeEvent,
   type NativeSyntheticEvent,
   Platform,
+  type TargetedEvent,
   type TextInput,
   type TextInputKeyPressEventData,
 } from 'react-native';
@@ -65,11 +66,21 @@ function usePhoneState(catalog: PhoneCatalog) {
 // Builds the live controller from catalog + state each render, keeping it in a
 // ref so the stable handlers below always read current values (latest-ref pattern).
 function useControllerRef(props: PhoneInputProps, catalog: PhoneCatalog, state: PhoneState) {
-  const { onChangeText, onCountryChange, onValidationChange, validationMode = 'onType', editable = true } = props;
+  const {
+    onChangeText,
+    onCountryChange,
+    onValidationChange,
+    onFocus,
+    onBlur,
+    validationMode = 'onType',
+    editable = true,
+  } = props;
   const callingCodeInputRef = useRef<TextInput>(null);
   const nationalInputRef = useRef<TextInput>(null);
   const selectingAllCodeRef = useRef(false);
   const lastEmittedValueRef = useRef(props.value);
+  const fieldFocusedRef = useRef(false);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedCountry = useMemo(
     () =>
@@ -84,6 +95,8 @@ function useControllerRef(props: PhoneInputProps, catalog: PhoneCatalog, state: 
     onChangeText,
     onCountryChange,
     onValidationChange,
+    onFocus,
+    onBlur,
     validationMode,
     editable,
     countryOptions: catalog.countryOptions,
@@ -106,6 +119,8 @@ function useControllerRef(props: PhoneInputProps, catalog: PhoneCatalog, state: 
     nationalInputRef,
     selectingAllCodeRef,
     lastEmittedValueRef,
+    fieldFocusedRef,
+    blurTimerRef,
   };
   const ref = useRef(controller);
   ref.current = controller;
@@ -120,13 +135,19 @@ function useStableHandlers(ref: RefObject<PhoneController>) {
   const handleCallingCodeChange = useCallback((next: string) => applyCallingCodeChange(ref.current, next, true), [ref]);
   const handleNationalChange = useCallback((formatted: string) => applyNationalInput(ref.current, formatted), [ref]);
   const focusActive = useCallback(() => focusActiveInput(ref.current), [ref]);
-  const onCallingCodeFocus = useCallback(() => handleCallingCodeFocus(ref.current), [ref]);
-  const onNationalFocus = useCallback(() => handleNationalFocus(ref.current), [ref]);
+  const onCallingCodeFocus = useCallback(
+    (event: NativeSyntheticEvent<TargetedEvent>) => handleCallingCodeFocus(ref.current, event),
+    [ref],
+  );
+  const onNationalFocus = useCallback(
+    (event: NativeSyntheticEvent<TargetedEvent>) => handleNationalFocus(ref.current, event),
+    [ref],
+  );
   const onNationalKeyPress = useCallback(
     (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => handleNationalKeyPress(ref.current, event),
     [ref],
   );
-  const onFieldBlur = useCallback(() => handleFieldBlur(ref.current), [ref]);
+  const onFieldBlur = useCallback((event: NativeSyntheticEvent<TargetedEvent>) => handleFieldBlur(ref.current, event), [ref]);
   return {
     selectCountry,
     handleCallingCodeChange,

@@ -2,6 +2,7 @@
 
 import type { CountryCode } from 'country-data-ts/countries';
 import { type ReactNode, useCallback, useState } from 'react';
+import type { NativeSyntheticEvent, ReturnKeyTypeOptions, TargetedEvent, TextInputSubmitEditingEventData } from 'react-native';
 import { PhoneInput } from '../../components/PhoneInput';
 import type { RenderContainerProps, RenderCountryPickerProps, RenderFlag } from '../../components/types';
 
@@ -21,6 +22,10 @@ export type HarnessProps = {
   renderFlag?: RenderFlag;
   renderContainer?: (props: RenderContainerProps) => ReactNode;
   renderCountryPicker?: (props: RenderCountryPickerProps) => ReactNode;
+  onFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onBlur?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  returnKeyType?: ReturnKeyTypeOptions;
+  onSubmitEditing?: (event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
 };
 
 export function Harness({ onChange, onCountryChange, onValidationChange, ...props }: HarnessProps) {
@@ -49,6 +54,10 @@ export function Harness({ onChange, onCountryChange, onValidationChange, ...prop
       renderFlag={props.renderFlag}
       renderContainer={props.renderContainer}
       renderCountryPicker={props.renderCountryPicker}
+      onFocus={props.onFocus}
+      onBlur={props.onBlur}
+      returnKeyType={props.returnKeyType}
+      onSubmitEditing={props.onSubmitEditing}
     />
   );
 }

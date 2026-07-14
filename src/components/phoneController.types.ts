@@ -1,7 +1,7 @@
 import type { CountryCode } from 'country-data-ts/countries';
 import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
 import type { RefObject } from 'react';
-import type { LayoutChangeEvent, NativeSyntheticEvent, TextInput, TextInputKeyPressEventData } from 'react-native';
+import type { LayoutChangeEvent, NativeSyntheticEvent, TargetedEvent, TextInput, TextInputKeyPressEventData } from 'react-native';
 import type { CountryOption } from '../utils/options';
 import type { PhoneValidationMode } from './PhoneInput';
 
@@ -15,6 +15,8 @@ export type PhoneController = {
   onChangeText: (value: string) => void;
   onCountryChange?: (country: CountryCode) => void;
   onValidationChange?: (isValid: boolean) => void;
+  onFocus?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
+  onBlur?: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   validationMode: PhoneValidationMode;
   editable: boolean;
 
@@ -41,6 +43,12 @@ export type PhoneController = {
   nationalInputRef: RefObject<TextInput | null>;
   selectingAllCodeRef: RefObject<boolean>;
   lastEmittedValueRef: RefObject<string>;
+  // Tracks whether the field as a whole holds focus, so the external
+  // onFocus/onBlur fire once on true entry/exit — not on the internal
+  // calling-code↔national hop. The timer defers the blur so a follow-up focus
+  // on the sibling input can cancel it.
+  fieldFocusedRef: RefObject<boolean>;
+  blurTimerRef: RefObject<ReturnType<typeof setTimeout> | null>;
 };
 
 export type ApplyNationalInputOptions = { focusNational?: boolean; resetCallingCode?: boolean };
@@ -70,9 +78,9 @@ export type PhoneInputView = {
   focusActiveInput: () => void;
   selectCountry: (code: CountryCode) => void;
   handleCallingCodeChange: (next: string) => void;
-  handleCallingCodeFocus: () => void;
+  handleCallingCodeFocus: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   handleNationalChange: (formatted: string) => void;
-  handleNationalFocus: () => void;
+  handleNationalFocus: (event: NativeSyntheticEvent<TargetedEvent>) => void;
   handleNationalKeyPress: (event: NativeSyntheticEvent<TextInputKeyPressEventData>) => void;
-  handleFieldBlur: () => void;
+  handleFieldBlur: (event: NativeSyntheticEvent<TargetedEvent>) => void;
 };

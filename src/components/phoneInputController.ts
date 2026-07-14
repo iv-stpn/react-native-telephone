@@ -1,6 +1,6 @@
 import type { CountryCode } from 'country-data-ts/countries';
 import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
-import { type NativeSyntheticEvent, Platform, type TextInputKeyPressEventData } from 'react-native';
+import { type NativeSyntheticEvent, Platform, type TargetedEvent, type TextInputKeyPressEventData } from 'react-native';
 import { nationalBelongsToCountry } from '../utils/areaCodes';
 import { getDefaultCountryForCallingCode } from '../utils/callingCodeDefaults';
 import type { CountryOption } from '../utils/options';
@@ -20,6 +20,22 @@ import type { ApplyNationalInputOptions, PhoneController } from './phoneControll
 function emitPhoneChange(c: PhoneController, nextValue: string): void {
   c.lastEmittedValueRef.current = nextValue;
   c.onChangeText(nextValue);
+}
+
+// Fires the external onFocus once on true entry: cancel any pending blur, then gate on fieldFocusedRef to swallow the internal code↔national hop.
+function notifyFieldFocus(c: PhoneController, event: NativeSyntheticEvent<TargetedEvent>): void {
+  if (c.blurTimerRef.current !== null) clearTimeout(c.blurTimerRef.current);
+  c.blurTimerRef.current = null;
+  if (c.fieldFocusedRef.current) return;
+  c.fieldFocusedRef.current = true;
+  c.onFocus?.(event);
+}
+
+function enterField(c: PhoneController, event: NativeSyntheticEvent<TargetedEvent>, reroute?: () => void): void {
+  if (!c.editable) return;
+  notifyFieldFocus(c, event);
+  if (reroute) requestAnimationFrame(reroute);
+  else c.setFocused(true);
 }
 
 function isNationalFull(digits: string, config: CountryPhoneConfig): boolean {
@@ -248,29 +264,32 @@ export function handleNationalKeyPress(c: PhoneController, event: NativeSyntheti
   requestAnimationFrame(() => c.callingCodeInputRef.current?.focus());
 }
 
-export function handleFieldBlur(c: PhoneController): void {
+// Blur runs on every input (incl. the internal hop): validation stays synchronous, but onBlur is deferred a tick so a sibling focus cancels it.
+export function handleFieldBlur(c: PhoneController, event: NativeSyntheticEvent<TargetedEvent>): void {
   c.setFocused(false);
-  if (!c.selectedCountry) return;
-  c.onValidationChange?.(c.extractedValue ? validateExtractedPhone(c.extractedValue, c.selectedCountry) : false);
-  evaluateValidity(c, c.extractedValue, c.selectedCountry, true);
+  if (c.selectedCountry) {
+    c.onValidationChange?.(c.extractedValue ? validateExtractedPhone(c.extractedValue, c.selectedCountry) : false);
+    evaluateValidity(c, c.extractedValue, c.selectedCountry, true);
+  }
+
+  if (c.onBlur || c.fieldFocusedRef.current) {
+    event.persist?.(); // guard against RN event pooling nulling it before the timer
+    if (c.blurTimerRef.current !== null) clearTimeout(c.blurTimerRef.current);
+    c.blurTimerRef.current = setTimeout(() => {
+      c.blurTimerRef.current = null;
+      c.fieldFocusedRef.current = false;
+      c.onBlur?.(event);
+    }, 0);
+  }
 }
 
-// Focus handler for the calling-code field: a complete code sends focus onward
-// to the national field, unless a select-all is deliberately landing here.
-export function handleCallingCodeFocus(c: PhoneController): void {
-  if (c.editable && c.isCallingCodeComplete && !c.selectingAllCodeRef.current) {
-    requestAnimationFrame(() => c.nationalInputRef.current?.focus());
-    return;
-  }
-  if (c.editable) c.setFocused(true);
+// Calling-code focus: a complete code sends focus onward to the national field (unless a select-all lands here).
+export function handleCallingCodeFocus(c: PhoneController, event: NativeSyntheticEvent<TargetedEvent>): void {
+  const reroute = c.isCallingCodeComplete && !c.selectingAllCodeRef.current;
+  enterField(c, event, reroute ? () => c.nationalInputRef.current?.focus() : undefined);
 }
 
-// Focus handler for the national field: routes focus back to an incomplete
-// calling code before letting national digits be entered.
-export function handleNationalFocus(c: PhoneController): void {
-  if (c.editable && !c.isCallingCodeComplete) {
-    requestAnimationFrame(() => c.callingCodeInputRef.current?.focus());
-    return;
-  }
-  if (c.editable) c.setFocused(true);
+// National focus: routes focus back to an incomplete calling code first.
+export function handleNationalFocus(c: PhoneController, event: NativeSyntheticEvent<TargetedEvent>): void {
+  enterField(c, event, c.isCallingCodeComplete ? undefined : () => c.callingCodeInputRef.current?.focus());
 }
