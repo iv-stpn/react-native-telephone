@@ -1,3 +1,4 @@
+import type { NativeSyntheticEvent, ReturnKeyTypeOptions, TextInputSubmitEditingEventData } from 'react-native';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import type { RenderFlag } from '../utils/flags';
 import type { PhoneInputView } from './phoneController.types';
@@ -36,6 +37,8 @@ type NationalFieldProps = {
   testID?: string;
   label?: string;
   placeholder: string;
+  returnKeyType?: ReturnKeyTypeOptions;
+  onSubmitEditing?: (event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
   textSizeStyle: TextSizeStyle;
   styles: FieldStyles;
 };
@@ -48,6 +51,8 @@ type PhoneFieldProps = {
   testID?: string;
   label?: string;
   placeholder?: string;
+  returnKeyType?: ReturnKeyTypeOptions;
+  onSubmitEditing?: (event: NativeSyntheticEvent<TextInputSubmitEditingEventData>) => void;
   chooseCountryLabel: string;
   renderFlag: RenderFlag;
   styles: FieldStyles;
@@ -128,7 +133,8 @@ export function CallingCodeField({ view, editable, testID, textSizeStyle, styles
 }
 
 // The national-number input: the canonical phone-autofill target.
-export function NationalField({ view, editable, testID, label, placeholder, textSizeStyle, styles }: NationalFieldProps) {
+export function NationalField(props: NationalFieldProps) {
+  const { view, editable, testID, label, placeholder, returnKeyType, onSubmitEditing, textSizeStyle, styles } = props;
   return (
     <TextInput
       ref={view.nationalInputRef}
@@ -145,6 +151,8 @@ export function NationalField({ view, editable, testID, label, placeholder, text
       autoComplete="tel"
       placeholder={placeholder}
       placeholderTextColor={COLORS.placeholder}
+      returnKeyType={returnKeyType}
+      onSubmitEditing={onSubmitEditing}
       style={[
         defaultStyles.nationalInput,
         noOutline,
@@ -163,6 +171,7 @@ export function NationalField({ view, editable, testID, label, placeholder, text
 // The full field row: flag button + calling-code field + national field.
 export function PhoneField(props: PhoneFieldProps) {
   const { view, editable, sizeMetrics, hasError, testID, label, placeholder, chooseCountryLabel, renderFlag, styles } = props;
+  const { returnKeyType, onSubmitEditing } = props;
   const textSizeStyle = { fontSize: sizeMetrics.fontSize };
   const nationalPlaceholder = view.isCallingCodeComplete ? (placeholder ?? view.selectedCountry.example) : '';
 
@@ -195,6 +204,8 @@ export function PhoneField(props: PhoneFieldProps) {
         testID={testID}
         label={label}
         placeholder={nationalPlaceholder}
+        returnKeyType={returnKeyType}
+        onSubmitEditing={onSubmitEditing}
         textSizeStyle={textSizeStyle}
         styles={styles}
       />
