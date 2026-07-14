@@ -1,4 +1,4 @@
-import { type StyleProp, StyleSheet, type TextStyle } from "react-native";
+import { type StyleProp, StyleSheet, type TextStyle } from 'react-native';
 
 // Baked-in default styling. React Native has no cascading stylesheet, so the
 // component's look lives here. Consumers override per-slot via the `styles` prop,
@@ -17,44 +17,45 @@ export const SIZES = {
 } as const;
 
 export const COLORS = {
-  border: "#cbd5e1",
-  borderFocused: "#4f46e5",
-  borderError: "#ef4444",
-  surface: "#ffffff",
-  backgroundDisabled: "#f1f5f9",
-  text: "#0f172a",
-  textDisabled: "#94a3b8",
-  muted: "#64748b",
-  placeholder: "#94a3b8",
-  label: "#374151",
-  error: "#ef4444",
-  primary: "#4f46e5",
-  selectedTint: "#eef2ff",
-  borderSubtle: "#e2e8f0",
+  border: '#cbd5e1',
+  borderFocused: '#4f46e5',
+  borderError: '#ef4444',
+  surface: '#ffffff',
+  backgroundDisabled: '#f1f5f9',
+  text: '#0f172a',
+  textDisabled: '#94a3b8',
+  muted: '#64748b',
+  placeholder: '#94a3b8',
+  label: '#374151',
+  error: '#ef4444',
+  primary: '#4f46e5',
+  selectedTint: '#eef2ff',
+  borderSubtle: '#e2e8f0',
 } as const;
 
 // Web-only reset: react-native-web renders TextInput as a DOM <input>, which
 // shows a focus outline the field border already conveys. `outlineStyle` isn't
 // in RN's TextStyle, so it's typed loosely here and composed onto each input
 // (rather than baked into a StyleSheet entry, where it would need a suppression).
-export const noOutline = { outlineStyle: "none" } as StyleProp<TextStyle>;
+// @ts-expect-error - outlineStyle: 'none' is valid on web but not in RN's TextStyle.
+export const noOutline: StyleProp<TextStyle> = { outlineStyle: 'none' };
 
 export const defaultStyles = StyleSheet.create({
   root: {
-    width: "100%",
-    flexDirection: "column",
+    width: '100%',
+    flexDirection: 'column',
     gap: 4,
   },
   label: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: '600',
     color: COLORS.label,
   },
   // The bordered input row: flag button + calling-code input + national input.
   field: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 8,
@@ -71,8 +72,8 @@ export const defaultStyles = StyleSheet.create({
   },
   // Pressable that opens the country picker (flag + caret).
   flagButton: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingRight: 6,
     gap: 4,
@@ -94,14 +95,14 @@ export const defaultStyles = StyleSheet.create({
   // rendered width. Pulled out of flow and given auto width so it reports the
   // text's natural size without stretching or disturbing the row.
   callingCodeMeasure: {
-    position: "absolute",
+    position: 'absolute',
     left: 0,
     top: 0,
-    width: "auto",
+    width: 'auto',
     opacity: 0,
     // The probe is decorative; keep it clear of the accessibility tree on web.
     // (Layout-only element, never shown.)
-    pointerEvents: "none",
+    pointerEvents: 'none',
   },
   nationalInput: {
     flexGrow: 1,
@@ -122,24 +123,24 @@ export const defaultStyles = StyleSheet.create({
   // --- Country picker modal ---
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.35)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 24,
   },
   panel: {
-    width: "100%",
+    width: '100%',
     maxWidth: 420,
-    maxHeight: "80%",
+    maxHeight: '80%',
     backgroundColor: COLORS.surface,
     borderRadius: 12,
-    overflow: "hidden",
-    flexDirection: "column",
+    overflow: 'hidden',
+    flexDirection: 'column',
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
@@ -147,14 +148,14 @@ export const defaultStyles = StyleSheet.create({
   },
   title: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
     color: COLORS.text,
   },
   closeButton: {
     width: 28,
     height: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 999,
   },
   closeButtonText: {
@@ -174,8 +175,8 @@ export const defaultStyles = StyleSheet.create({
     flexGrow: 0,
   },
   option: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
@@ -195,13 +196,13 @@ export const defaultStyles = StyleSheet.create({
   },
   optionCheck: {
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: '700',
     color: COLORS.primary,
   },
   empty: {
     padding: 24,
     fontSize: 14,
     color: COLORS.muted,
-    textAlign: "center",
+    textAlign: 'center',
   },
 });

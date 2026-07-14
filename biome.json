@@ -1,77 +1,35 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.5.2/schema.json",
-  "plugins": ["./node_modules/biome-one-liner-plugin/oneLiner.grit"],
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
-  "files": {
-    "includes": ["**", "!!**/dist"]
-  },
-  "formatter": {
-    "enabled": true,
-    "indentStyle": "space",
-    "indentWidth": 2,
-    "lineWidth": 130
-  },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "preset": "none"
-    },
-    "includes": ["**", "!dist/**", "!node_modules/**"]
-  },
-  "css": {
-    "parser": {
-      "tailwindDirectives": true
-    }
-  },
-  "javascript": {
-    "formatter": {
-      "quoteStyle": "double"
-    }
-  },
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "extends": ["@iv-stpn/biome-config/biome"],
   "overrides": [
     {
-      "includes": ["**/*.{ts,tsx}", "!dist/**", "!node_modules/**"],
+      "includes": ["src/__tests__/**"],
       "linter": {
         "rules": {
           "complexity": {
-            "noBannedTypes": "error",
-            "noUselessThisAlias": "error",
-            "noUselessTypeConstraint": "error"
+            "noExcessiveLinesPerFunction": "off"
           },
-          "correctness": {
-            "noChildrenProp": "error",
-            "noUnusedVariables": "error",
-            "useExhaustiveDependencies": "warn",
-            "useHookAtTopLevel": "error",
-            "useJsxKeyInIterable": "error"
+          "performance": {
+            "noJsxPropsBind": "off"
           },
           "style": {
-            "noCommonJs": "error",
-            "noNamespace": "error",
-            "useArrayLiterals": "error",
-            "useAsConstAssertion": "error"
-          },
-          "suspicious": {
-            "noCommentText": "error",
-            "noDuplicateJsxProps": "error",
-            "noExplicitAny": "error",
-            "noTsIgnore": "error",
-            "useNamespaceKeyword": "error"
+            "noExcessiveLinesPerFile": "off",
+            "noJsxLiterals": "off",
+            "useComponentExportOnlyModules": "off",
+            "useFilenamingConvention": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["demo/**"],
+      "linter": {
+        "rules": {
+          "performance": {
+            "noJsxPropsBind": "off"
           }
         }
       }
     }
-  ],
-  "assist": {
-    "enabled": true,
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  }
+  ]
 }

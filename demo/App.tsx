@@ -1,35 +1,38 @@
+// biome-ignore-all lint/style/noJsxLiterals: demo only
 // Web demo for react-native-telephone, rendered via react-native-web.
 // Shows the default field, per-slot styling, a custom (image) flag renderer,
 // a restricted country list, and live E.164 + validity output.
-import { useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
-import type { CountryCode } from "country-data-ts/countries";
-import { PhoneInput } from "../src/components/PhoneInput";
+
+import type { CountryCode } from 'country-data-ts/countries';
+import { useState } from 'react';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PhoneInput } from '../src/components/PhoneInput';
 
 const s = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#f8fafc" },
-  container: { maxWidth: 520, width: "100%", alignSelf: "center", padding: 24, gap: 20 },
-  h1: { fontSize: 22, fontWeight: "700", color: "#0f172a" },
-  sub: { fontSize: 13, color: "#64748b", marginTop: -12 },
+  page: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { maxWidth: 520, width: '100%', alignSelf: 'center', padding: 24, gap: 20 },
+  h1: { fontSize: 22, fontWeight: '700', color: '#0f172a' },
+  sub: { fontSize: 13, color: '#64748b', marginTop: -12 },
   section: { gap: 8 },
   legend: {
     fontSize: 11,
-    fontWeight: "700",
+    fontWeight: '700',
     letterSpacing: 0.6,
-    color: "#64748b",
-    textTransform: "uppercase",
+    color: '#64748b',
+    textTransform: 'uppercase',
   },
-  readout: { backgroundColor: "#0f172a", borderRadius: 8, padding: 12, gap: 2 },
-  readoutText: { fontFamily: "monospace", fontSize: 12, color: "#e2e8f0" },
-  ok: { color: "#4ade80" },
-  bad: { color: "#f87171" },
+  readout: { backgroundColor: '#0f172a', borderRadius: 8, padding: 12, gap: 2 },
+  readoutText: { fontFamily: 'monospace', fontSize: 12, color: '#e2e8f0' },
+  ok: { color: '#4ade80' },
+  bad: { color: '#f87171' },
 });
 
-function Readout({ label, value, valid }: { label: string; value: string; valid: boolean }) {
+type ReadoutProps = { label: string; value: string; valid: boolean };
+function Readout({ label, value, valid }: ReadoutProps) {
   return (
     <View style={s.readout}>
       <Text style={s.readoutText}>
-        {label}: <Text style={valid ? s.ok : s.bad}>{value || "(empty)"}</Text>
+        {label}: <Text style={valid ? s.ok : s.bad}>{value || '(empty)'}</Text>
       </Text>
       <Text style={s.readoutText}>
         valid: <Text style={valid ? s.ok : s.bad}>{String(valid)}</Text>
@@ -39,12 +42,12 @@ function Readout({ label, value, valid }: { label: string; value: string; valid:
 }
 
 export function App() {
-  const [basic, setBasic] = useState("");
+  const [basic, setBasic] = useState('');
   const [basicValid, setBasicValid] = useState(false);
-  const [styled, setStyled] = useState("");
-  const [flagged, setFlagged] = useState("+33612345678");
-  const [restricted, setRestricted] = useState("");
-  const [country, setCountry] = useState<CountryCode>("US");
+  const [styled, setStyled] = useState('');
+  const [flagged, setFlagged] = useState('+33612345678');
+  const [restricted, setRestricted] = useState('');
+  const [country, setCountry] = useState<CountryCode>('US');
 
   return (
     <ScrollView style={s.page} contentContainerStyle={{ flexGrow: 1 }}>
@@ -74,10 +77,10 @@ export function App() {
             value={styled}
             onChangeText={setStyled}
             styles={{
-              field: { borderColor: "#111827", borderRadius: 14, borderWidth: 2 },
-              label: { color: "#111827" },
-              nationalInput: { fontFamily: "monospace" },
-              optionSelected: { backgroundColor: "#fef3c7" },
+              field: { borderColor: '#111827', borderRadius: 14, borderWidth: 2 },
+              label: { color: '#111827' },
+              nationalInput: { fontFamily: 'monospace' },
+              optionSelected: { backgroundColor: '#fef3c7' },
             }}
           />
         </View>
@@ -104,7 +107,7 @@ export function App() {
             label="EU only"
             value={restricted}
             onChangeText={setRestricted}
-            allowedCountries={["FR", "DE", "ES", "IT", "NL", "BE"]}
+            allowedCountries={['FR', 'DE', 'ES', 'IT', 'NL', 'BE']}
             defaultCountry="FR"
           />
         </View>

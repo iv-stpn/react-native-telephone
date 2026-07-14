@@ -2,15 +2,15 @@
 // the component so the (Intl-powered) localization and search-label logic is
 // testable in isolation and doesn't drag JSX into the phone utilities.
 
-import type { CountryCode } from "country-data-ts/countries";
-import type { CountryPhoneConfig } from "country-data-ts/phone-data";
-import { formatAreaCode, getCountryPhoneCatalog, getNationalMask, getUniqueAreaCode } from "./phone";
+import type { CountryCode } from 'country-data-ts/countries';
+import type { CountryPhoneConfig } from 'country-data-ts/phone-data';
+import { formatAreaCode, getCountryPhoneCatalog, getNationalMask, getUniqueAreaCode } from './phone';
 
 /**
  * A single selectable country in the picker: its phone config, a (possibly
  * localized) display name, and a pre-lowercased label used for search matching.
  */
-export interface CountryOption {
+export type CountryOption = {
   config: CountryPhoneConfig;
   /** Localized display name, falling back to the dataset's English name. */
   name: string;
@@ -31,7 +31,7 @@ export interface CountryOption {
    * national display value on selection.
    */
   areaCodeDisplay?: string;
-}
+};
 
 /**
  * Folds a string for diacritic-insensitive substring search: lowercased with
@@ -41,8 +41,8 @@ export interface CountryOption {
  */
 export function normalizeForSearch(value: string): string {
   return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
     .toLowerCase();
 }
 
@@ -53,10 +53,10 @@ export function normalizeForSearch(value: string): string {
  * unmapped code.
  */
 export function getRegionLabel(locale: string, code: CountryCode, fallbackName: string): string {
-  if (typeof Intl === "undefined" || typeof Intl.DisplayNames !== "function") return fallbackName;
+  if (typeof Intl === 'undefined' || typeof Intl.DisplayNames !== 'function') return fallbackName;
 
   try {
-    const regionNames = new Intl.DisplayNames([locale], { type: "region" });
+    const regionNames = new Intl.DisplayNames([locale], { type: 'region' });
     return regionNames.of(code) ?? fallbackName;
   } catch {
     return fallbackName;
@@ -78,7 +78,7 @@ export function buildCountryOptions(locale: string, allowedCountries?: readonly 
     const name = getRegionLabel(locale, config.code, config.name);
     const areaCode = getUniqueAreaCode(config);
     const areaCodeDisplay = areaCode ? formatAreaCode(getNationalMask(config), areaCode) : undefined;
-    const searchableLabel = normalizeForSearch(`${name} ${config.code} ${config.callingCode}${areaCode ? ` ${areaCode}` : ""}`);
+    const searchableLabel = normalizeForSearch(`${name} ${config.code} ${config.callingCode}${areaCode ? ` ${areaCode}` : ''}`);
     return { config, name, searchableLabel, areaCode, areaCodeDisplay };
   });
 

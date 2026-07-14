@@ -7,8 +7,8 @@
 // "regional indicator symbols" (U+1F1E6–U+1F1FF). So "US" → 🇺🇸 with no image
 // assets and no per-country data — the code *is* the flag.
 
-const REGIONAL_INDICATOR_BASE = 0x1f1e6; // Unicode code point for regional indicator "A".
-const LETTER_A = "A".charCodeAt(0);
+const REGIONAL_INDICATOR_BASE = 0x1_f1_e6; // Unicode code point for regional indicator "A".
+const LETTER_A = 'A'.charCodeAt(0);
 
 /**
  * Converts an ISO 3166-1 alpha-2 code into its flag emoji (e.g. "FR" → 🇫🇷).
@@ -17,7 +17,7 @@ const LETTER_A = "A".charCodeAt(0);
  */
 export function countryCodeToEmoji(code: string): string {
   const upper = code.toUpperCase();
-  let emoji = "";
+  let emoji = '';
 
   for (const char of upper) {
     const offset = char.charCodeAt(0) - LETTER_A;

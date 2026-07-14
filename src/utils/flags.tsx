@@ -10,19 +10,17 @@
 // calls the resolver below (and a custom renderer can call it too via
 // `countryCodeToEmoji`).
 
-import type { ReactNode } from "react";
-import { Text } from "react-native";
-import type { CountryCode } from "country-data-ts/countries";
-import { countryCodeToEmoji } from "./emoji";
-
-export { countryCodeToEmoji } from "./emoji";
+import type { CountryCode } from 'country-data-ts/countries';
+import type { ReactNode } from 'react';
+import { Text } from 'react-native';
+import { countryCodeToEmoji } from './emoji';
 
 /** Everything a custom flag renderer needs to draw one country's flag. */
-export interface FlagRenderProps {
+export type FlagRenderProps = {
   code: CountryCode;
   /** Suggested glyph size (px); tracks the field's text size. */
   size: number;
-}
+};
 
 /**
  * Signature for a custom flag renderer (the `renderFlag` prop). Return any node:
