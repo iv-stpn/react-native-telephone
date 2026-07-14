@@ -3,30 +3,11 @@
   "extends": ["@iv-stpn/biome-config/biome"],
   "overrides": [
     {
-      "includes": ["src/__tests__/**"],
+      "includes": ["**/*.test.ts", "**/*.test.tsx"],
       "linter": {
         "rules": {
-          "complexity": {
-            "noExcessiveLinesPerFunction": "off"
-          },
-          "performance": {
-            "noJsxPropsBind": "off"
-          },
           "style": {
-            "noExcessiveLinesPerFile": "off",
-            "noJsxLiterals": "off",
-            "useComponentExportOnlyModules": "off",
             "useFilenamingConvention": "off"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["demo/**"],
-      "linter": {
-        "rules": {
-          "performance": {
-            "noJsxPropsBind": "off"
           }
         }
       }

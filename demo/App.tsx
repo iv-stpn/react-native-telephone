@@ -41,6 +41,16 @@ function Readout({ label, value, valid }: ReadoutProps) {
   );
 }
 
+type RenderFlagProps = { code: CountryCode; size: number };
+function RenderFlag({ code, size }: RenderFlagProps) {
+  return (
+    <Image
+      source={{ uri: `https://flagcdn.com/32x24/${code.toLowerCase()}.png` }}
+      style={{ width: size + 2, height: (size * 3) / 4, borderRadius: 2 }}
+    />
+  );
+}
+
 export function App() {
   const [basic, setBasic] = useState('');
   const [basicValid, setBasicValid] = useState(false);
@@ -87,17 +97,7 @@ export function App() {
 
         <View style={s.section}>
           <Text style={s.legend}>Custom flags (renderFlag → image)</Text>
-          <PhoneInput
-            label="Image flags"
-            value={flagged}
-            onChangeText={setFlagged}
-            renderFlag={({ code }) => (
-              <Image
-                source={{ uri: `https://flagcdn.com/32x24/${code.toLowerCase()}.png` }}
-                style={{ width: 26, height: 18, borderRadius: 2 }}
-              />
-            )}
-          />
+          <PhoneInput label="Image flags" value={flagged} onChangeText={setFlagged} renderFlag={RenderFlag} />
           <Text style={s.sub}>Use this on Android, where emoji flags don't render.</Text>
         </View>
 
